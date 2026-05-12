@@ -1,0 +1,26 @@
+{
+  "name": "Absensi RFID Sekolah",
+  "short_name": "Absensi",
+  "start_url": "./index.php",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#e91e63",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "assets/img/logo_sekolah.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "assets/img/logo_sekolah.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "assets/img/apple-icon.png",
+      "sizes": "76x76",
+      "type": "image/png"
+    }
+  ]
+}

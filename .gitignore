@@ -1,0 +1,19 @@
+# Sensitive files
+include/db_config.php
+
+# Error logs
+error_log
+*.log
+
+# FTP quota
+.ftpquota
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
