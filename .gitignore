@@ -1,8 +1,9 @@
 # Sensitive files
 include/db_config.php
 
-# Error logs
+# Error & deploy logs
 error_log
+deploy.log
 *.log
 
 # FTP quota
