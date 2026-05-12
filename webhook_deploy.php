@@ -9,7 +9,7 @@
 // --- KONFIGURASI ---
 // Ganti dengan secret token yang Anda atur di GitHub/GitLab webhook.
 // Ini sangat penting untuk keamanan.
-$secretToken = 'GANTI_DENGAN_SECRET_TOKEN_ANDA';
+$secretToken = 'absensi_alikhlas_2023';
 
 // Path absolut ke direktori Git Anda di server.
 $repoPath = __DIR__;
