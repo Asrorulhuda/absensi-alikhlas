@@ -1,33 +1,29 @@
 <?php
 /**
- * GitHub Webhook Auto-Deploy Script
+ * GitHub Webhook Receiver
  * 
- * This script is triggered by GitHub webhooks whenever you push to the repo.
- * It pulls the latest changes from GitHub to your hosting server.
+ * When GitHub sends a push event, this script saves a flag file
+ * so the dashboard can show a "update available" notification.
  * 
- * SETUP INSTRUCTIONS:
- * 1. Upload this file to your hosting server
- * 2. Set your secret key below (change DEPLOY_SECRET)
- * 3. In GitHub repo → Settings → Webhooks → Add webhook:
+ * SETUP:
+ * 1. GitHub repo → Settings → Webhooks → Add webhook
  *    - Payload URL: https://yourdomain.com/deploy.php
  *    - Content type: application/json
- *    - Secret: (same as DEPLOY_SECRET below)
+ *    - Secret: (same as $secret below)
  *    - Events: Just the push event
- * 4. Make sure Git is available on your hosting server
- * 5. Make sure the web root is a git repository (run `git clone` once on server)
  */
 
 // ============================================
-// CONFIGURATION - CHANGE THESE VALUES
+// CONFIGURATION
 // ============================================
-$secret = 'alikhlas-deploy-2026'; // Change this to a strong secret key
+$secret = 'alikhlas-deploy-2026'; // Change this to match your GitHub webhook secret
 $branch = 'main';
+$flagFile = __DIR__ . '/update_available.json';
 $logFile = __DIR__ . '/deploy.log';
 
 // ============================================
 // SECURITY VERIFICATION
 // ============================================
-// Verify the request is from GitHub
 $headers = getallheaders();
 $hubSignature = isset($headers['X-Hub-Signature-256']) ? $headers['X-Hub-Signature-256'] : '';
 
@@ -53,32 +49,33 @@ if ($ref !== 'refs/heads/' . $branch) {
 }
 
 // ============================================
-// DEPLOY
+// SAVE UPDATE FLAG
 // ============================================
-$output = [];
-$returnCode = 0;
+$pusher = isset($data['pusher']['name']) ? $data['pusher']['name'] : 'Unknown';
+$commitMsg = '';
+$commitCount = 0;
 
-// Navigate to web root and pull latest changes
-$commands = [
-    'cd ' . escapeshellarg(__DIR__) . ' 2>&1',
-    'git fetch origin ' . $branch . ' 2>&1',
-    'git reset --hard origin/' . $branch . ' 2>&1',
+if (isset($data['commits']) && is_array($data['commits'])) {
+    $commitCount = count($data['commits']);
+    $lastCommit = end($data['commits']);
+    $commitMsg = isset($lastCommit['message']) ? $lastCommit['message'] : '';
+}
+
+$updateInfo = [
+    'available' => true,
+    'timestamp' => date('Y-m-d H:i:s'),
+    'pusher' => $pusher,
+    'branch' => $branch,
+    'commit_message' => $commitMsg,
+    'commit_count' => $commitCount,
+    'compare_url' => isset($data['compare']) ? $data['compare'] : ''
 ];
 
-$fullCommand = implode(' && ', $commands);
-exec($fullCommand, $output, $returnCode);
+file_put_contents($flagFile, json_encode($updateInfo, JSON_PRETTY_PRINT), LOCK_EX);
 
-// Log the deployment
-$log = date('Y-m-d H:i:s') . " | Branch: $branch | Status: " . ($returnCode === 0 ? 'SUCCESS' : 'FAILED') . "\n";
-$log .= "Output: " . implode("\n", $output) . "\n";
-$log .= str_repeat('-', 50) . "\n";
+// Log
+$log = date('Y-m-d H:i:s') . " | Push detected from: $pusher | Commits: $commitCount | Message: $commitMsg\n";
 file_put_contents($logFile, $log, FILE_APPEND | LOCK_EX);
 
-// Response
-if ($returnCode === 0) {
-    http_response_code(200);
-    echo "Deploy successful!\n" . implode("\n", $output);
-} else {
-    http_response_code(500);
-    echo "Deploy failed!\n" . implode("\n", $output);
-}
+http_response_code(200);
+echo json_encode(['status' => 'ok', 'message' => 'Update flag saved']);
