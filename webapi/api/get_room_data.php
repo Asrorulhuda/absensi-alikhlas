@@ -5,7 +5,7 @@ include_once '../../include/db_config.php';
 
 date_default_timezone_set('Asia/Jakarta');
 
-$today = date('d-m-Y');
+$today = date('Y-m-d');
 //$data_arr = array();
 $total_users = 0;
 $tap_in_today = 0;

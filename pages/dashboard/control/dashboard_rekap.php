@@ -10,7 +10,7 @@
 		'Fri' => 'Jumat',
 		'Sat' => 'Sabtu'
 	);
-	$today = date("d-m-Y");
+	$today = date("Y-m-d");
 		
  
     $s_member= mysqli_query($GLOBALS["___mysqli_ston"], "SELECT * FROM data_siswa");
