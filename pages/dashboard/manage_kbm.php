@@ -15,60 +15,72 @@ $pdo = $database->getConnection();
 // Handle Save Siswa
 if(isset($_POST['save_schedule'])){
     $kelas = $_POST['kelas'];
-    $hari = $_POST['hari'];
+    $hari_selected = isset($_POST['hari']) ? $_POST['hari'] : [];
     $masuk = $_POST['jam_masuk'];
     $pulang = $_POST['jam_pulang'];
     $batas = $_POST['batas_masuk'];
     
-    // Check if exists
-    $check = $pdo->prepare("SELECT id FROM kbm_schedules WHERE class_name = ? AND day_name = ?");
-    $check->execute([$kelas, $hari]);
-    
-    if($check->rowCount() > 0){
-        $sql = "UPDATE kbm_schedules SET start_time=?, end_time=?, entry_limit=? WHERE class_name=? AND day_name=?";
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute([$masuk, $pulang, $batas, $kelas, $hari]);
+    if(!empty($hari_selected)){
+        foreach($hari_selected as $hari){
+            // Check if exists
+            $check = $pdo->prepare("SELECT id FROM kbm_schedules WHERE class_name = ? AND day_name = ?");
+            $check->execute([$kelas, $hari]);
+            
+            if($check->rowCount() > 0){
+                $sql = "UPDATE kbm_schedules SET start_time=?, end_time=?, entry_limit=? WHERE class_name=? AND day_name=?";
+                $stmt = $pdo->prepare($sql);
+                $stmt->execute([$masuk, $pulang, $batas, $kelas, $hari]);
+            } else {
+                $sql = "INSERT INTO kbm_schedules (class_name, day_name, start_time, end_time, entry_limit) VALUES (?, ?, ?, ?, ?)";
+                $stmt = $pdo->prepare($sql);
+                $stmt->execute([$kelas, $hari, $masuk, $pulang, $batas]);
+            }
+        }
+        $msg = "Jadwal Siswa untuk ".count($hari_selected)." hari berhasil disimpan!";
     } else {
-        $sql = "INSERT INTO kbm_schedules (class_name, day_name, start_time, end_time, entry_limit) VALUES (?, ?, ?, ?, ?)";
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute([$kelas, $hari, $masuk, $pulang, $batas]);
+        $msg = "Error: Silakan pilih setidaknya satu hari!";
     }
-    $msg = "Jadwal berhasil disimpan!";
 }
 
 // Handle Save Guru
 if(isset($_POST['save_guru_schedule'])){
     $g_uid = !empty($_POST['g_uid']) ? $_POST['g_uid'] : null;
-    $hari = $_POST['hari'];
+    $hari_selected = isset($_POST['hari']) ? $_POST['hari'] : [];
     $masuk = $_POST['jam_masuk'];
     $pulang = $_POST['jam_pulang'];
     $batas = $_POST['batas_masuk'];
     
-    // Check if exists
-    if($g_uid === null){
-        $check = $pdo->prepare("SELECT id FROM guru_schedules WHERE g_uid IS NULL AND day_name = ?");
-        $check->execute([$hari]);
-    } else {
-        $check = $pdo->prepare("SELECT id FROM guru_schedules WHERE g_uid = ? AND day_name = ?");
-        $check->execute([$g_uid, $hari]);
-    }
-    
-    if($check->rowCount() > 0){
-        if($g_uid === null){
-            $sql = "UPDATE guru_schedules SET start_time=?, end_time=?, entry_limit=? WHERE g_uid IS NULL AND day_name=?";
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute([$masuk, $pulang, $batas, $hari]);
-        } else {
-            $sql = "UPDATE guru_schedules SET start_time=?, end_time=?, entry_limit=? WHERE g_uid=? AND day_name=?";
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute([$masuk, $pulang, $batas, $g_uid, $hari]);
+    if(!empty($hari_selected)){
+        foreach($hari_selected as $hari){
+            // Check if exists
+            if($g_uid === null){
+                $check = $pdo->prepare("SELECT id FROM guru_schedules WHERE g_uid IS NULL AND day_name = ?");
+                $check->execute([$hari]);
+            } else {
+                $check = $pdo->prepare("SELECT id FROM guru_schedules WHERE g_uid = ? AND day_name = ?");
+                $check->execute([$g_uid, $hari]);
+            }
+            
+            if($check->rowCount() > 0){
+                if($g_uid === null){
+                    $sql = "UPDATE guru_schedules SET start_time=?, end_time=?, entry_limit=? WHERE g_uid IS NULL AND day_name=?";
+                    $stmt = $pdo->prepare($sql);
+                    $stmt->execute([$masuk, $pulang, $batas, $hari]);
+                } else {
+                    $sql = "UPDATE guru_schedules SET start_time=?, end_time=?, entry_limit=? WHERE g_uid=? AND day_name=?";
+                    $stmt = $pdo->prepare($sql);
+                    $stmt->execute([$masuk, $pulang, $batas, $g_uid, $hari]);
+                }
+            } else {
+                $sql = "INSERT INTO guru_schedules (g_uid, day_name, start_time, end_time, entry_limit) VALUES (?, ?, ?, ?, ?)";
+                $stmt = $pdo->prepare($sql);
+                $stmt->execute([$g_uid, $hari, $masuk, $pulang, $batas]);
+            }
         }
+        $msg_guru = "Jadwal Guru untuk ".count($hari_selected)." hari berhasil disimpan!";
     } else {
-        $sql = "INSERT INTO guru_schedules (g_uid, day_name, start_time, end_time, entry_limit) VALUES (?, ?, ?, ?, ?)";
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute([$g_uid, $hari, $masuk, $pulang, $batas]);
+        $msg_guru = "Error: Silakan pilih setidaknya satu hari!";
     }
-    $msg_guru = "Jadwal Guru berhasil disimpan!";
 }
 
 // Handle Delete Siswa
@@ -166,38 +178,36 @@ $active_tab = isset($_GET['tab']) ? $_GET['tab'] : (isset($msg_guru) ? 'guru' : 
                 <div class="card-body">
                   <?php if(isset($msg)) echo "<div class='alert alert-success text-white' role='alert'>$msg</div>"; ?>
                   <form method="POST">
-                    <div class="input-group input-group-outline my-3">
-                        <label class="form-label">Kelas</label>
+                    <div class="input-group input-group-static my-3">
+                        <label>Kelas</label>
                         <select name="kelas" class="form-control" required>
-                            <option value="" selected disabled></option>
+                            <option value="" selected disabled>Pilih Kelas</option>
                             <?php foreach($classes as $c): ?>
                                 <option value="<?= $c['s_kelas'] ?>"><?= $c['s_kelas'] ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
-                    <div class="input-group input-group-outline my-3">
-                        <label class="form-label">Hari</label>
-                        <select name="hari" class="form-control" required>
-                            <option value="" selected disabled></option>
-                            <option value="Senin">Senin</option>
-                            <option value="Selasa">Selasa</option>
-                            <option value="Rabu">Rabu</option>
-                            <option value="Kamis">Kamis</option>
-                            <option value="Jumat">Jumat</option>
-                            <option value="Sabtu">Sabtu</option>
-                            <option value="Minggu">Minggu</option>
-                        </select>
+                    <div class="input-group input-group-static my-3">
+                        <label>Hari (Bisa pilih banyak)</label>
+                        <div class="d-flex flex-wrap mt-2">
+                            <?php foreach(['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'] as $day): ?>
+                                <div class="form-check me-2">
+                                    <input class="form-check-input" type="checkbox" name="hari[]" value="<?= $day ?>" id="siswa_<?= $day ?>">
+                                    <label class="custom-control-label mb-0" for="siswa_<?= $day ?>"><?= $day ?></label>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
                     </div>
-                    <div class="input-group input-group-outline my-3 is-filled">
-                        <label class="form-label">Jam Masuk</label>
+                    <div class="input-group input-group-static my-3">
+                        <label>Jam Masuk</label>
                         <input type="time" name="jam_masuk" class="form-control" required>
                     </div>
-                    <div class="input-group input-group-outline my-3 is-filled">
-                        <label class="form-label">Jam Pulang</label>
+                    <div class="input-group input-group-static my-3">
+                        <label>Jam Pulang</label>
                         <input type="time" name="jam_pulang" class="form-control" required>
                     </div>
-                    <div class="input-group input-group-outline my-3 is-filled">
-                        <label class="form-label">Batas Terlambat</label>
+                    <div class="input-group input-group-static my-3">
+                        <label>Batas Terlambat</label>
                         <input type="time" name="batas_masuk" class="form-control" required>
                     </div>
                     <small class="text-muted d-block mb-3">Siswa dianggap terlambat jika lewat jam ini.</small>
@@ -274,8 +284,8 @@ $active_tab = isset($_GET['tab']) ? $_GET['tab'] : (isset($msg_guru) ? 'guru' : 
                 <div class="card-body">
                   <?php if(isset($msg_guru)) echo "<div class='alert alert-success text-white' role='alert'>$msg_guru</div>"; ?>
                   <form method="POST">
-                    <div class="input-group input-group-outline my-3">
-                        <label class="form-label">Guru</label>
+                    <div class="input-group input-group-static my-3">
+                        <label>Guru</label>
                         <select name="g_uid" class="form-control">
                             <option value="">-- Semua Guru --</option>
                             <?php foreach($gurus as $g): ?>
@@ -283,29 +293,27 @@ $active_tab = isset($_GET['tab']) ? $_GET['tab'] : (isset($msg_guru) ? 'guru' : 
                             <?php endforeach; ?>
                         </select>
                     </div>
-                    <div class="input-group input-group-outline my-3">
-                        <label class="form-label">Hari</label>
-                        <select name="hari" class="form-control" required>
-                            <option value="" selected disabled></option>
-                            <option value="Senin">Senin</option>
-                            <option value="Selasa">Selasa</option>
-                            <option value="Rabu">Rabu</option>
-                            <option value="Kamis">Kamis</option>
-                            <option value="Jumat">Jumat</option>
-                            <option value="Sabtu">Sabtu</option>
-                            <option value="Minggu">Minggu</option>
-                        </select>
+                    <div class="input-group input-group-static my-3">
+                        <label>Hari (Bisa pilih banyak)</label>
+                        <div class="d-flex flex-wrap mt-2">
+                            <?php foreach(['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'] as $day): ?>
+                                <div class="form-check me-2">
+                                    <input class="form-check-input" type="checkbox" name="hari[]" value="<?= $day ?>" id="guru_<?= $day ?>">
+                                    <label class="custom-control-label mb-0" for="guru_<?= $day ?>"><?= $day ?></label>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
                     </div>
-                    <div class="input-group input-group-outline my-3 is-filled">
-                        <label class="form-label">Jam Masuk</label>
+                    <div class="input-group input-group-static my-3">
+                        <label>Jam Masuk</label>
                         <input type="time" name="jam_masuk" class="form-control" value="07:00" required>
                     </div>
-                    <div class="input-group input-group-outline my-3 is-filled">
-                        <label class="form-label">Jam Pulang</label>
+                    <div class="input-group input-group-static my-3">
+                        <label>Jam Pulang</label>
                         <input type="time" name="jam_pulang" class="form-control" value="16:00" required>
                     </div>
-                    <div class="input-group input-group-outline my-3 is-filled">
-                        <label class="form-label">Batas Terlambat</label>
+                    <div class="input-group input-group-static my-3">
+                        <label>Batas Terlambat</label>
                         <input type="time" name="batas_masuk" class="form-control" value="08:00" required>
                     </div>
                     <button type="submit" name="save_guru_schedule" class="btn bg-gradient-primary w-100">Simpan Jadwal Guru</button>
