@@ -248,6 +248,9 @@ $card_bg_color = $row["card_bg_color"] ?? 'rgba(255, 255, 255, 0.1)';
 </head>
 
 <body>
+  <div style="background: #ffeb3b; color: #000; text-align: center; padding: 10px; font-weight: bold; position: fixed; top: 0; width: 100%; z-index: 9999; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
+      🚀 TEST AUTO-DEPLOY BERHASIL! 🚀
+  </div>
   
   <div class="hero-section">
     <!-- Animated Shapes -->
