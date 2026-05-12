@@ -16,7 +16,7 @@
 // ============================================
 // CONFIGURATION
 // ============================================
-$secret = 'alikhlas-deploy-2026'; // Change this to match your GitHub webhook secret
+$secret = 'absensi_alikhlas_2023'; // Change this to match your GitHub webhook secret
 $branch = 'main';
 $flagFile = __DIR__ . '/update_available.json';
 $logFile = __DIR__ . '/deploy.log';
