@@ -30,10 +30,10 @@ if (isset($_GET['role']) && in_array($_GET['role'], ['Admin', 'Guru', 'User'])) 
     $active_role = "single";
 }
 
-// Fetch users with linked Siswa & Guru details
+// Fetch users with linked Siswa & Guru details, including RFID card UIDs
 $sql_users = "SELECT u.*, 
-                     s.s_nis, s.s_kelas, s.s_nama,
-                     g.g_nip, g.g_jabatan, g.g_nama
+                     s.s_uid, s.s_nis, s.s_kelas, s.s_nama,
+                     g.g_uid, g.g_nip, g.g_jabatan, g.g_nama
               FROM users u
               LEFT JOIN data_siswa s ON u.id_siswa = s.s_id
               LEFT JOIN data_guru g ON u.id_guru = g.g_id
@@ -61,8 +61,8 @@ $login_url_encoded = urlencode($login_url);
   <link rel="icon" type="image/png" href="../../<?php echo htmlspecialchars($conf_row['icon_bar'] ?? 'favicon.ico'); ?>">
   <title>Cetak Akun Login — <?php echo htmlspecialchars($company_name); ?></title>
   
-  <!-- Fonts & Material Icons -->
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Fonts & Icons -->
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
   
   <!-- Tailwind CSS -->
@@ -73,6 +73,7 @@ $login_url_encoded = urlencode($login_url);
         extend: {
           fontFamily: {
             sans: ['Plus Jakarta Sans', 'Inter', 'sans-serif'],
+            mono: ['Fira Code', 'monospace']
           }
         }
       }
@@ -109,6 +110,27 @@ $login_url_encoded = urlencode($login_url);
             page-break-inside: avoid;
             break-inside: avoid;
         }
+        
+        /* Layout media overrides */
+        .print-grid-premium {
+            display: grid !important;
+            grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+            gap: 10px !important;
+        }
+        .print-grid-mini {
+            display: grid !important;
+            grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+            gap: 6px !important;
+        }
+        .print-table {
+            display: table !important;
+            width: 100% !important;
+        }
+        
+        .card-border-dashed {
+            background-image: url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' rx='12' ry='12' stroke='%2394a3b8' stroke-width='1' stroke-dasharray='4%2c 4' stroke-dashoffset='0' stroke-linecap='square'/%3e%3c/svg%3e") !important;
+            border: none !important;
+        }
     }
     
     .card-border-dashed {
@@ -129,7 +151,7 @@ $login_url_encoded = urlencode($login_url);
         </a>
         <div>
           <h1 class="text-lg font-extrabold text-slate-800 leading-tight">Cetak Akun Login</h1>
-          <p class="text-xs text-slate-400 font-medium">Cetak info akun login untuk Guru, Siswa, dan Admin</p>
+          <p class="text-xs text-slate-400 font-medium">Cetak data login (Name, UID, Username, Password) langsung ke kertas A4</p>
         </div>
       </div>
 
@@ -144,19 +166,22 @@ $login_url_encoded = urlencode($login_url);
           <a href="?role=User" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all <?php echo $active_role == 'User' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'; ?>">Siswa</a>
         </div>
 
-        <!-- Format Selector (Slips vs Table) -->
+        <!-- Layout Selector (Premium Slips, Mini Cards, Table) -->
         <div class="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
-          <button id="btn-format-slips" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-white text-slate-800 shadow-sm flex items-center gap-1">
-            <span class="material-icons-round text-sm">grid_view</span> Kartu/Slip
+          <button id="btn-format-mini" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-white text-slate-800 shadow-sm flex items-center gap-1">
+            <span class="material-icons-round text-sm">apps</span> Mini (A4 Hemat 20-50 Kartu)
+          </button>
+          <button id="btn-format-premium" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-500 hover:text-slate-800 flex items-center gap-1">
+            <span class="material-icons-round text-sm">grid_view</span> Slip Premium (Besar)
           </button>
           <button id="btn-format-table" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-500 hover:text-slate-800 flex items-center gap-1">
-            <span class="material-icons-round text-sm">view_list</span> Tabel
+            <span class="material-icons-round text-sm">view_list</span> Tabel Ringkas
           </button>
         </div>
 
         <!-- Print Trigger -->
         <button onclick="window.print()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-5 py-2.5 rounded-xl flex items-center gap-1.5 shadow-md shadow-blue-500/10 hover:shadow-blue-500/25 transition-all">
-          <span class="material-icons-round text-base">print</span> Cetak Sekarang
+          <span class="material-icons-round text-base">print</span> Cetak Halaman
         </button>
 
       </div>
@@ -165,7 +190,7 @@ $login_url_encoded = urlencode($login_url);
   </header>
 
   <!-- PRINT WRAPPER -->
-  <main class="max-w-6xl mx-auto px-6 py-8 print-page">
+  <main class="max-w-7xl mx-auto px-6 py-8 print-page">
     
     <!-- Empty State -->
     <?php if (empty($users_list)): ?>
@@ -179,36 +204,112 @@ $login_url_encoded = urlencode($login_url);
       </div>
     <?php else: ?>
 
-      <!-- 1. SLIPS/CARDS FORMAT VIEW -->
-      <div id="format-slips-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <!-- ============================================== -->
+      <!-- 1. MINI FORMAT CONTAINER (4 Columns, fits 20-50 per sheet) -->
+      <!-- ============================================== -->
+      <div id="format-mini-container" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 print-grid-mini">
         
         <?php foreach ($users_list as $u): 
             $lvl = $u['level_akses'];
-            $theme_color = "slate-700";
+            $bg_badge = "bg-slate-100 text-slate-700";
+            $pw_hint = "Sesuai Pilihan";
+            $uid = "-";
+            
+            if ($lvl == 'Admin') {
+                $bg_badge = "bg-blue-50 text-blue-700 border-blue-100";
+                $pw_hint = "Pass Admin";
+            } elseif ($lvl == 'Guru' || !empty($u['id_guru'])) {
+                $bg_badge = "bg-emerald-50 text-emerald-700 border-emerald-100";
+                $pw_hint = !empty($u['g_nip']) ? htmlspecialchars($u['g_nip']) : "NIP Guru";
+                $uid = !empty($u['g_uid']) ? $u['g_uid'] : "-";
+            } elseif ($lvl == 'User' || !empty($u['id_siswa'])) {
+                $bg_badge = "bg-indigo-50 text-indigo-700 border-indigo-100";
+                $pw_hint = !empty($u['s_nis']) ? htmlspecialchars($u['s_nis']) : "123456";
+                $uid = !empty($u['s_uid']) ? $u['s_uid'] : "-";
+            }
+        ?>
+          <div class="page-break-avoid bg-white rounded-xl border border-slate-200 p-3 flex flex-col justify-between h-[120px] shadow-sm card-border-dashed">
+            
+            <!-- Header -->
+            <div class="flex items-center justify-between border-b border-slate-100 pb-1.5 mb-1.5">
+              <div class="flex items-center gap-1.5">
+                <img src="../../<?php echo htmlspecialchars($logo_print); ?>" class="h-4 object-contain" alt="Logo" onerror="this.onerror=null; this.src='../../assets/img/asr_edu.png'">
+                <span class="text-[7.5px] font-extrabold text-slate-800 uppercase tracking-tighter block leading-none truncate max-w-[80px]"><?php echo htmlspecialchars($company_name); ?></span>
+              </div>
+              <span class="text-[6.5px] font-extrabold px-1 py-0.5 rounded border <?php echo $bg_badge; ?> uppercase leading-none">
+                <?php echo $lvl == 'User' ? 'Siswa' : $lvl; ?>
+              </span>
+            </div>
+            
+            <!-- Details -->
+            <div class="flex-1 space-y-1">
+              <div class="leading-none">
+                <span class="text-[6px] text-slate-400 font-bold uppercase tracking-wider block">Nama Lengkap</span>
+                <span class="text-[10px] font-extrabold text-slate-850 block truncate leading-tight"><?php echo htmlspecialchars($u['name']); ?></span>
+              </div>
+              
+              <div class="grid grid-cols-2 gap-1 mt-1">
+                <div>
+                  <span class="text-[6px] text-slate-400 font-bold uppercase tracking-wider block">Username</span>
+                  <span class="text-[9px] font-bold text-slate-700 bg-slate-50 px-1 py-0.5 rounded border border-slate-100 block truncate tracking-wide leading-none select-all"><?php echo htmlspecialchars($u['username']); ?></span>
+                </div>
+                <div>
+                  <span class="text-[6px] text-slate-400 font-bold uppercase tracking-wider block">Password</span>
+                  <span class="text-[9px] font-extrabold text-slate-800 block truncate leading-none select-all"><?php echo htmlspecialchars($pw_hint); ?></span>
+                </div>
+              </div>
+              
+              <div class="mt-1 flex items-center justify-between">
+                <div>
+                  <span class="text-[6px] text-slate-400 font-bold uppercase tracking-wider block">UID Kartu</span>
+                  <span class="text-[9px] font-mono font-bold text-slate-650 block leading-none select-all"><?php echo htmlspecialchars($uid); ?></span>
+                </div>
+                <?php if ($lvl == 'User' && !empty($u['s_kelas'])): ?>
+                  <span class="text-[7px] bg-slate-150 text-slate-600 font-extrabold px-1 rounded">Kls <?php echo htmlspecialchars($u['s_kelas']); ?></span>
+                <?php elseif ($lvl == 'Guru' && !empty($u['g_jabatan'])): ?>
+                  <span class="text-[7px] bg-slate-150 text-slate-600 font-extrabold px-1 rounded truncate max-w-[65px]"><?php echo htmlspecialchars($u['g_jabatan']); ?></span>
+                <?php endif; ?>
+              </div>
+            </div>
+            
+            <!-- Footer -->
+            <div class="border-t border-slate-100 pt-1 mt-1 flex items-center justify-between text-[6px] text-slate-400 leading-none">
+              <span class="truncate max-w-[125px]"><?php echo htmlspecialchars(str_replace(['http://', 'https://'], '', $login_url)); ?></span>
+              <span class="font-bold text-slate-300">ASR.EDU</span>
+            </div>
+            
+          </div>
+        <?php endforeach; ?>
+
+      </div>
+
+
+      <!-- ============================================== -->
+      <!-- 2. PREMIUM FORMAT CONTAINER (3 Columns, original layout) -->
+      <!-- ============================================== -->
+      <div id="format-premium-container" class="hidden grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 print-grid-premium">
+        
+        <?php foreach ($users_list as $u): 
+            $lvl = $u['level_akses'];
             $bg_badge = "bg-slate-100 text-slate-700";
             $role_title = "AKSES PENGGUNA";
             $pw_hint = "Password yang Anda buat";
+            $uid = "-";
             
             if ($lvl == 'Admin') {
-                $theme_color = "blue-600";
                 $bg_badge = "bg-blue-50 text-blue-700 border-blue-100";
                 $role_title = "KARTU LOGIN ADMINISTRATOR";
                 $pw_hint = "Password Administrator Anda";
             } elseif ($lvl == 'Guru' || !empty($u['id_guru'])) {
-                $theme_color = "emerald-600";
                 $bg_badge = "bg-emerald-50 text-emerald-700 border-emerald-100";
                 $role_title = "KARTU LOGIN GURU / STAFF";
                 $pw_hint = !empty($u['g_nip']) ? "Default: " . htmlspecialchars($u['g_nip']) : "NIP Guru / Password Terdaftar";
+                $uid = !empty($u['g_uid']) ? $u['g_uid'] : "-";
             } elseif ($lvl == 'User' || !empty($u['id_siswa'])) {
-                $theme_color = "indigo-600";
                 $bg_badge = "bg-indigo-50 text-indigo-700 border-indigo-100";
                 $role_title = "KARTU LOGIN SISWA";
                 $pw_hint = !empty($u['s_nis']) ? "Default: " . htmlspecialchars($u['s_nis']) : "123456 / NIS Siswa";
-            }
-            
-            $avatar = !empty($u['picture']) ? $u['picture'] : '../../assets/img/user_pict/user_default.png';
-            if (strpos($avatar, '../') === 0 && strpos($avatar, '../../') !== 0) {
-                $avatar = '../' . $avatar;
+                $uid = !empty($u['s_uid']) ? $u['s_uid'] : "-";
             }
         ?>
           <div class="page-break-avoid bg-white rounded-2xl border border-slate-200 p-5 relative overflow-hidden flex flex-col justify-between shadow-sm card-border-dashed">
@@ -232,10 +333,10 @@ $login_url_encoded = urlencode($login_url);
               <?php echo $role_title; ?>
             </span>
 
-            <!-- Main Body (Split layout) -->
+            <!-- Main Body -->
             <div class="flex gap-4 items-start mb-4">
               
-              <!-- Left side details -->
+              <!-- Details -->
               <div class="flex-1 space-y-2">
                 <div>
                   <span class="text-[8px] text-slate-400 font-bold uppercase tracking-wider block">Nama Lengkap</span>
@@ -247,9 +348,15 @@ $login_url_encoded = urlencode($login_url);
                   <?php endif; ?>
                 </div>
 
-                <div>
-                  <span class="text-[8px] text-slate-400 font-bold uppercase tracking-wider block">Username</span>
-                  <span class="text-xs font-bold text-slate-700 bg-slate-50 px-2 py-1 rounded border border-slate-100 inline-block tracking-wide select-all"><?php echo htmlspecialchars($u['username']); ?></span>
+                <div class="grid grid-cols-2 gap-1.5">
+                  <div>
+                    <span class="text-[8px] text-slate-400 font-bold uppercase tracking-wider block">Username</span>
+                    <span class="text-xs font-bold text-slate-700 bg-slate-50 px-2 py-1 rounded border border-slate-100 block truncate tracking-wide select-all"><?php echo htmlspecialchars($u['username']); ?></span>
+                  </div>
+                  <div>
+                    <span class="text-[8px] text-slate-400 font-bold uppercase tracking-wider block">UID Kartu</span>
+                    <span class="text-xs font-mono font-bold text-slate-600 bg-slate-50 px-2 py-1 rounded border border-slate-100 block truncate select-all"><?php echo htmlspecialchars($uid); ?></span>
+                  </div>
                 </div>
 
                 <div>
@@ -258,7 +365,7 @@ $login_url_encoded = urlencode($login_url);
                 </div>
               </div>
 
-              <!-- Right side QR Code -->
+              <!-- QR Code -->
               <div class="text-center flex-shrink-0 flex flex-col items-center gap-1.5 bg-slate-50 border border-slate-100 p-2 rounded-xl">
                 <img src="https://api.qrserver.com/v1/create-qr-code/?size=70x70&data=<?php echo $login_url_encoded; ?>" 
                      class="w-[70px] h-[70px] object-contain" 
@@ -269,7 +376,7 @@ $login_url_encoded = urlencode($login_url);
 
             </div>
 
-            <!-- Footer Details -->
+            <!-- Footer -->
             <div class="border-t border-slate-100 pt-2.5 mt-2 flex items-center justify-between text-[8px] text-slate-400">
               <span class="truncate max-w-[200px]">URL: <span class="text-slate-600 font-medium select-all"><?php echo htmlspecialchars($login_url); ?></span></span>
               <span class="font-bold text-[7px] text-slate-300">Powered by ASR.EDU</span>
@@ -280,9 +387,12 @@ $login_url_encoded = urlencode($login_url);
 
       </div>
 
-      <!-- 2. TABLE FORMAT VIEW (Hidden on screen load, enabled by script/print) -->
-      <div id="format-table-container" class="hidden bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
-        <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+
+      <!-- ============================================== -->
+      <!-- 3. TABLE FORMAT VIEW (Grid Table list) -->
+      <!-- ============================================== -->
+      <div id="format-table-container" class="hidden bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm print-table">
+        <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center no-print">
           <h2 class="font-extrabold text-sm text-slate-800">Daftar Akun Pengguna</h2>
           <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider"><?php echo count($users_list); ?> Akun Terdaftar</span>
         </div>
@@ -292,6 +402,7 @@ $login_url_encoded = urlencode($login_url);
               <th class="px-6 py-4">No</th>
               <th class="px-6 py-4">Nama Lengkap</th>
               <th class="px-6 py-4">Role/Level</th>
+              <th class="px-6 py-4">UID Kartu</th>
               <th class="px-6 py-4">Username</th>
               <th class="px-6 py-4">Password Default</th>
               <th class="px-6 py-4">Info Lain</th>
@@ -303,24 +414,24 @@ $login_url_encoded = urlencode($login_url);
             foreach ($users_list as $u):
                 $lvl = $u['level_akses'];
                 $pw_hint = "Password Rahasia";
+                $uid = "-";
                 $other_info = "-";
                 
                 if ($lvl == 'Admin') {
                     $pw_hint = "Password Rahasia Admin";
                 } elseif ($lvl == 'Guru' || !empty($u['id_guru'])) {
                     $pw_hint = !empty($u['g_nip']) ? htmlspecialchars($u['g_nip']) : "NIP Guru";
+                    $uid = !empty($u['g_uid']) ? htmlspecialchars($u['g_uid']) : "-";
                     $other_info = htmlspecialchars($u['g_jabatan'] ?? 'Guru');
                 } elseif ($lvl == 'User' || !empty($u['id_siswa'])) {
                     $pw_hint = !empty($u['s_nis']) ? htmlspecialchars($u['s_nis']) : "123456";
+                    $uid = !empty($u['s_uid']) ? htmlspecialchars($u['s_uid']) : "-";
                     $other_info = !empty($u['s_kelas']) ? 'Kelas ' . htmlspecialchars($u['s_kelas']) : 'Siswa';
                 }
             ?>
               <tr class="hover:bg-slate-50/50 transition-colors">
                 <td class="px-6 py-4 font-bold text-slate-400"><?php echo $no++; ?></td>
-                <td class="px-6 py-4">
-                  <div class="font-extrabold text-slate-850"><?php echo htmlspecialchars($u['name']); ?></div>
-                  <div class="text-[10px] text-slate-400 font-medium"><?php echo htmlspecialchars($u['email']); ?></div>
-                </td>
+                <td class="px-6 py-4 font-extrabold text-slate-850"><?php echo htmlspecialchars($u['name']); ?></td>
                 <td class="px-6 py-4">
                   <span class="px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider <?php 
                     echo $lvl == 'Admin' ? 'bg-blue-50 text-blue-700' : ($lvl == 'Guru' ? 'bg-emerald-50 text-emerald-700' : 'bg-indigo-50 text-indigo-700'); 
@@ -328,6 +439,7 @@ $login_url_encoded = urlencode($login_url);
                     <?php echo $lvl == 'User' ? 'Siswa' : $lvl; ?>
                   </span>
                 </td>
+                <td class="px-6 py-4 font-mono text-slate-600 font-bold"><?php echo htmlspecialchars($uid); ?></td>
                 <td class="px-6 py-4 font-bold text-slate-700 tracking-wide"><?php echo htmlspecialchars($u['username']); ?></td>
                 <td class="px-6 py-4 font-extrabold text-slate-800"><?php echo htmlspecialchars($pw_hint); ?></td>
                 <td class="px-6 py-4 text-slate-500"><?php echo htmlspecialchars($other_info); ?></td>
@@ -346,23 +458,36 @@ $login_url_encoded = urlencode($login_url);
   
   <script>
     $(document).ready(function() {
-      // Toggle to Card view
-      $('#btn-format-slips').click(function() {
-        $(this).removeClass('text-slate-500 hover:text-slate-800').addClass('bg-white text-slate-800 shadow-sm');
-        $('#btn-format-table').removeClass('bg-white text-slate-800 shadow-sm').addClass('text-slate-500 hover:text-slate-800');
-        
-        $('#format-slips-container').removeClass('hidden');
+      // Toggle to Mini Card view
+      $('#btn-format-mini').click(function() {
+        setFormatActive($(this));
+        $('#format-mini-container').removeClass('hidden');
+        $('#format-premium-container').addClass('hidden');
+        $('#format-table-container').addClass('hidden');
+      });
+
+      // Toggle to Premium view
+      $('#btn-format-premium').click(function() {
+        setFormatActive($(this));
+        $('#format-premium-container').removeClass('hidden');
+        $('#format-mini-container').addClass('hidden');
         $('#format-table-container').addClass('hidden');
       });
 
       // Toggle to Table view
       $('#btn-format-table').click(function() {
-        $(this).removeClass('text-slate-500 hover:text-slate-800').addClass('bg-white text-slate-800 shadow-sm');
-        $('#btn-format-slips').removeClass('bg-white text-slate-800 shadow-sm').addClass('text-slate-500 hover:text-slate-800');
-        
+        setFormatActive($(this));
         $('#format-table-container').removeClass('hidden');
-        $('#format-slips-container').addClass('hidden');
+        $('#format-premium-container').addClass('hidden');
+        $('#format-mini-container').addClass('hidden');
       });
+
+      function setFormatActive(btn) {
+        $('#btn-format-mini, #btn-format-premium, #btn-format-table')
+          .removeClass('bg-white text-slate-800 shadow-sm')
+          .addClass('text-slate-500 hover:text-slate-800');
+        btn.removeClass('text-slate-500 hover:text-slate-800').addClass('bg-white text-slate-800 shadow-sm');
+      }
     });
   </script>
 </body>
