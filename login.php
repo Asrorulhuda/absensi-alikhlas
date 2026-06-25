@@ -163,30 +163,117 @@ if(isset($_POST["username"]) && !empty($_POST["username"])){
     }
     
     .hero-bg {
-        background: linear-gradient(135deg, <?php echo $landing_bg_color1; ?> 0%, <?php echo $landing_bg_color2; ?> 100%);
+        background: radial-gradient(circle at 50% 50%, <?php echo $landing_bg_color2; ?>d9 0%, <?php echo $landing_bg_color1; ?> 100%);
     }
 
-    /* Glassmorphism Utilities */
-    .glass-panel {
-        background: rgba(255, 255, 255, 0.1);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        border: 1px solid rgba(255, 255, 255, 0.2);
-    }
-    
+    /* Glassmorphic Panel with dynamic styles */
     .glass-card {
-        background: rgba(255, 255, 255, 0.1);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
+        background: rgba(255, 255, 255, 0.08);
+        backdrop-filter: blur(25px);
+        -webkit-backdrop-filter: blur(25px);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.4);
+        transform-style: preserve-3d;
+        transition: transform 0.1s ease, box-shadow 0.3s ease;
     }
 
+    .glass-input-wrapper {
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .glass-input-wrapper:focus-within {
+        background: rgba(255, 255, 255, 0.14);
+        border-color: rgba(255, 255, 255, 0.4);
+        box-shadow: 0 0 20px rgba(255, 255, 255, 0.08);
+    }
+
+    /* Floating Labels styling */
+    .floating-group {
+        position: relative;
+    }
+    .floating-group input:focus ~ .floating-label,
+    .floating-group input:not(:placeholder-shown) ~ .floating-label {
+        transform: translateY(-135%) scale(0.85);
+        left: 1rem;
+        color: #ffffff;
+        background: rgba(11, 37, 69, 0.4);
+        padding: 0 6px;
+        border-radius: 4px;
+    }
+    .floating-label {
+        position: absolute;
+        left: 2.75rem;
+        top: 50%;
+        transform: translateY(-50%);
+        pointer-events: none;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        color: rgba(255, 255, 255, 0.45);
+    }
+
+    /* Animated background blobs */
     .blob {
         position: absolute;
-        filter: blur(60px);
+        filter: blur(90px);
         z-index: 0;
-        opacity: 0.5;
+        opacity: 0.6;
+        pointer-events: none;
+    }
+
+    @keyframes drift-1 {
+        0% { transform: translate(0px, 0px) scale(1); }
+        33% { transform: translate(40px, -60px) scale(1.15); }
+        66% { transform: translate(-30px, 30px) scale(0.9); }
+        100% { transform: translate(0px, 0px) scale(1); }
+    }
+    @keyframes drift-2 {
+        0% { transform: translate(0px, 0px) scale(1); }
+        33% { transform: translate(-50px, 40px) scale(0.85); }
+        66% { transform: translate(40px, -30px) scale(1.2); }
+        100% { transform: translate(0px, 0px) scale(1); }
+    }
+    @keyframes drift-3 {
+        0% { transform: translate(0px, 0px) scale(1); }
+        50% { transform: translate(50px, 50px) scale(1.25); }
+        100% { transform: translate(0px, 0px) scale(1); }
+    }
+
+    .animate-blob-1 { animation: drift-1 14s infinite ease-in-out; }
+    .animate-blob-2 { animation: drift-2 18s infinite ease-in-out; }
+    .animate-blob-3 { animation: drift-3 22s infinite ease-in-out; }
+
+    /* Custom Checkbox Switch */
+    .switch-checkbox:checked + .switch-label {
+        background-color: rgba(255, 255, 255, 0.95);
+    }
+    .switch-checkbox:checked + .switch-label .switch-dot {
+        transform: translateX(100%);
+        background-color: <?php echo $landing_bg_color1; ?>;
+    }
+
+    /* Button shine keyframe */
+    @keyframes shine {
+        100% { transform: translateX(100%); }
+    }
+    .btn-shine-effect:hover .shine-slide {
+        animation: shine 0.85s ease-in-out;
+    }
+
+    /* Grid Overlay background */
+    .grid-bg {
+        background-image: linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px), 
+                          linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px);
+        background-size: 35px 35px;
+        background-position: center center;
+    }
+
+    @keyframes float {
+        0% { transform: translateY(0px) rotate(0deg); }
+        50% { transform: translateY(-8px) rotate(1deg); }
+        100% { transform: translateY(0px) rotate(0deg); }
+    }
+    .animate-float {
+        animation: float 6s ease-in-out infinite;
     }
   </style>
   
@@ -203,23 +290,32 @@ if(isset($_POST["username"]) && !empty($_POST["username"])){
   </script>
 </head>
 
-<body class="hero-bg min-h-screen flex items-center justify-center p-6 relative select-none">
+<body class="hero-bg min-h-screen flex items-center justify-center p-6 relative overflow-hidden select-none">
+  
+  <!-- Interactive Background Grid Overlay -->
+  <div class="absolute inset-0 grid-bg pointer-events-none z-[1]"></div>
+  
+  <!-- Interactive Canvas Particle system -->
+  <canvas id="particle-canvas" class="absolute inset-0 z-[2] pointer-events-none"></canvas>
   
   <!-- Soft Blurry Blobs -->
-  <div class="blob bg-purple-500 w-80 h-80 rounded-full top-10 left-10"></div>
-  <div class="blob bg-blue-400 w-80 h-80 rounded-full bottom-10 right-10"></div>
+  <div class="blob bg-indigo-500 w-96 h-96 rounded-full top-10 left-10 animate-blob-1"></div>
+  <div class="blob bg-purple-500 w-96 h-96 rounded-full bottom-10 right-10 animate-blob-2"></div>
+  <div class="blob bg-pink-500 w-80 h-80 rounded-full top-1/2 left-1/3 -translate-y-1/2 animate-blob-3"></div>
   
   <!-- Main Glassmorphic Login Card -->
   <div class="glass-card w-full max-w-md rounded-3xl p-8 relative z-10 animate__animated animate__fadeInUp">
     
     <!-- Card Header -->
     <div class="text-center mb-8">
-      <a href="index.php" class="inline-flex items-center gap-2 text-white/80 hover:text-white text-xs font-semibold mb-6 transition-colors">
-        <i class="fas fa-arrow-left"></i> Kembali ke Beranda
+      <a href="index.php" class="inline-flex items-center gap-1.5 text-white/70 hover:text-white text-xs font-semibold mb-6 transition-colors group">
+        <i class="material-icons-round text-sm transition-transform group-hover:-translate-x-0.5">arrow_back</i> Kembali ke Beranda
       </a>
       
       <div class="flex justify-center mb-4">
-        <img src="assets/img/asr_edu.png" class="max-w-[70px] drop-shadow-xl animate__animated animate__pulse animate__infinite" alt="Logo" onerror="this.onerror=null; this.src='assets/img/logo_sekolah.png'">
+        <div class="relative p-1 rounded-2xl bg-white/5 border border-white/10 shadow-inner">
+          <img src="assets/img/asr_edu.png" class="h-14 object-contain drop-shadow-xl animate-float" alt="Logo" onerror="this.onerror=null; this.src='assets/img/logo_sekolah.png'">
+        </div>
       </div>
       
       <h3 class="text-2xl font-extrabold tracking-tight text-white mb-1"><?php echo $nama_perusahaan; ?></h3>
@@ -227,44 +323,58 @@ if(isset($_POST["username"]) && !empty($_POST["username"])){
     </div>
     
     <!-- Login Form -->
-    <form action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="post" class="space-y-5">
+    <form action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="post" id="login-form" class="space-y-5">
       
       <!-- Username Field -->
-      <div>
-        <label class="block text-[10px] font-bold text-indigo-100 uppercase tracking-wider mb-2" for="username">Username</label>
-        <div class="relative">
-          <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-white/50">
-            <i class="material-icons-round text-sm">person</i>
+      <div class="floating-group">
+        <div class="glass-input-wrapper relative rounded-xl flex items-center">
+          <span class="absolute left-4 text-white/40 flex items-center">
+            <i class="material-icons-round text-lg">person</i>
           </span>
-          <input type="text" id="username" name="username" required placeholder="Masukkan username"
-                 class="w-full bg-white/10 border border-white/20 rounded-xl py-3.5 pl-11 pr-4 text-sm font-semibold text-white placeholder-white/40 focus:outline-none focus:border-white focus:bg-white/20 transition-all">
+          <input type="text" id="username" name="username" required placeholder=" " autocomplete="off"
+                 class="w-full bg-transparent border-0 py-4 pl-12 pr-4 text-sm font-semibold text-white focus:outline-none focus:ring-0">
+          <label for="username" class="floating-label text-xs">Username</label>
         </div>
       </div>
       
       <!-- Password Field -->
-      <div>
-        <label class="block text-[10px] font-bold text-indigo-100 uppercase tracking-wider mb-2" for="password">Password</label>
-        <div class="relative">
-          <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-white/50">
-            <i class="material-icons-round text-sm">lock</i>
+      <div class="floating-group">
+        <div class="glass-input-wrapper relative rounded-xl flex items-center">
+          <span class="absolute left-4 text-white/40 flex items-center">
+            <i class="material-icons-round text-lg">lock</i>
           </span>
-          <input type="password" id="password" name="password" required placeholder="••••••••"
-                 class="w-full bg-white/10 border border-white/20 rounded-xl py-3.5 pl-11 pr-4 text-sm font-semibold text-white placeholder-white/40 focus:outline-none focus:border-white focus:bg-white/20 transition-all">
+          <input type="password" id="password" name="password" required placeholder=" "
+                 class="w-full bg-transparent border-0 py-4 pl-12 pr-12 text-sm font-semibold text-white focus:outline-none focus:ring-0">
+          <label for="password" class="floating-label text-xs">Password</label>
+          <button type="button" id="toggle-password" class="absolute right-4 text-white/40 hover:text-white transition-colors focus:outline-none flex items-center">
+            <i class="material-icons-round text-lg" id="password-eye-icon">visibility</i>
+          </button>
         </div>
       </div>
       
       <!-- Remember Me Switch -->
       <div class="flex items-center justify-between">
         <label class="flex items-center gap-3 cursor-pointer select-none">
-          <input class="w-4 h-4 rounded border-white/20 bg-white/10 text-blue-600 focus:ring-0 focus:ring-offset-0 cursor-pointer" type="checkbox" id="rememberMe" name="rememberMe">
+          <div class="relative">
+            <input type="checkbox" id="rememberMe" name="rememberMe" class="sr-only switch-checkbox">
+            <div class="w-9 h-5 bg-white/20 rounded-full switch-label transition-colors duration-300 relative">
+              <div class="w-4 h-4 bg-white rounded-full absolute top-0.5 left-0.5 switch-dot transition-transform duration-300"></div>
+            </div>
+          </div>
           <span class="text-xs text-indigo-100/90 font-medium">Ingat Saya</span>
         </label>
       </div>
       
       <!-- Submit Button -->
       <div class="pt-2">
-        <button type="submit" class="w-full bg-white hover:bg-indigo-50 text-indigo-900 font-extrabold text-sm py-4 rounded-xl shadow-lg transition-all hover:scale-[1.02] flex items-center justify-center gap-2">
-          Masuk Sekarang
+        <button type="submit" id="btn-login-submit" class="w-full bg-white hover:bg-indigo-50 text-indigo-900 font-extrabold text-sm py-4 rounded-xl shadow-lg transition-all hover:scale-[1.01] flex items-center justify-center gap-2 group relative overflow-hidden btn-shine-effect">
+          <span class="absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-transparent -translate-x-full shine-slide"></span>
+          <span id="btn-text" class="flex items-center gap-2">
+            Masuk Sekarang <i class="material-icons-round text-base transition-transform group-hover:translate-x-0.5">arrow_forward</i>
+          </span>
+          <span id="btn-spinner" class="hidden flex items-center gap-2">
+            <i class="material-icons-round text-base animate-spin">sync</i> Memproses...
+          </span>
         </button>
       </div>
 
@@ -275,19 +385,15 @@ if(isset($_POST["username"]) && !empty($_POST["username"])){
         <div class="flex-grow border-t border-white/10"></div>
       </div>
       
-      <!-- Scan QR / RFID Monitor link -->
-      <div>
+      <!-- Quick Action Buttons -->
+      <div class="grid grid-cols-2 gap-3">
         <a href="pages/dashboard/scan2.php" 
-           class="w-full glass-panel hover:bg-white/20 text-white font-bold text-xs py-3.5 rounded-xl transition-all flex items-center justify-center gap-2">
-          <i class="material-icons-round text-base">qr_code_scanner</i> Buka Scan Presensi
+           class="w-full bg-white/10 hover:bg-white/20 border border-white/15 text-white font-bold text-xs py-3.5 rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-md">
+          <i class="material-icons-round text-base">qr_code_scanner</i> Scan Presensi
         </a>
-      </div>
-
-      <!-- Card Registration link -->
-      <div>
         <a href="registrasi_kartu.php" 
-           class="w-full border border-white/10 hover:border-white/30 text-white/80 hover:text-white font-semibold text-[11px] py-3 rounded-xl transition-all flex items-center justify-center gap-2">
-          Registrasi Kartu Baru
+           class="w-full bg-white/5 hover:bg-white/10 border border-white/10 text-white/90 hover:text-white font-semibold text-xs py-3.5 rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-md">
+          <i class="material-icons-round text-base">credit_card</i> Register Kartu
         </a>
       </div>
       
@@ -314,16 +420,113 @@ if(isset($_POST["username"]) && !empty($_POST["username"])){
   <script src="https://code.jquery.com/jquery-3.6.3.min.js" crossorigin="anonymous"></script>
   
   <script>
+    // --- 1. Canvas Particle Animation ---
+    const canvas = document.getElementById('particle-canvas');
+    const ctx = canvas.getContext('2d');
+    let particles = [];
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    class Particle {
+      constructor() {
+        this.x = Math.random() * canvas.width;
+        this.y = Math.random() * canvas.height;
+        this.size = Math.random() * 3 + 1;
+        this.speedX = Math.random() * 0.4 - 0.2;
+        this.speedY = Math.random() * 0.4 - 0.2;
+        this.opacity = Math.random() * 0.5 + 0.1;
+      }
+      update() {
+        this.x += this.speedX;
+        this.y += this.speedY;
+        if (this.x < 0 || this.x > canvas.width) this.speedX *= -1;
+        if (this.y < 0 || this.y > canvas.height) this.speedY *= -1;
+      }
+      draw() {
+        ctx.fillStyle = `rgba(255, 255, 255, ${this.opacity})`;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    function initParticles() {
+      particles = [];
+      const count = Math.floor((canvas.width * canvas.height) / 11000);
+      for (let i = 0; i < Math.min(count, 120); i++) {
+        particles.push(new Particle());
+      }
+    }
+    initParticles();
+
+    function animateParticles() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      particles.forEach(p => {
+        p.update();
+        p.draw();
+      });
+      requestAnimationFrame(animateParticles);
+    }
+    animateParticles();
+
+    // --- 2. Interactive Page Scripts ---
     $(document).ready(function() {
-      // Close custom modal alert
-      $('#close-error-btn').click(function() {
-        $('#error-modal').addClass('hidden').removeClass('flex');
+      // 3D Card Tilt Effect on mouse movement
+      const card = $('.glass-card');
+      $(document).on('mousemove', function(e) {
+        const cx = window.innerWidth / 2;
+        const cy = window.innerHeight / 2;
+        const dx = e.clientX - cx;
+        const dy = e.clientY - cy;
+        const tiltX = (dy / cy) * -6; // max 6 degrees tilt
+        const tiltY = (dx / cx) * 6;  // max 6 degrees tilt
+        
+        card.css({
+          'transform': `perspective(1000px) rotateX(${tiltX}deg) rotateY(${tiltY}deg)`,
+          'transition': 'none'
+        });
       });
       
-      // Close error modal if clicking outside modal content
+      $(document).on('mouseleave', function() {
+        card.css({
+          'transform': 'perspective(1000px) rotateX(0deg) rotateY(0deg)',
+          'transition': 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)'
+        });
+      });
+
+      // Password Toggle
+      $('#toggle-password').click(function() {
+        const passwordInput = $('#password');
+        const eyeIcon = $('#password-eye-icon');
+        const isPassword = passwordInput.attr('type') === 'password';
+        
+        passwordInput.attr('type', isPassword ? 'text' : 'password');
+        eyeIcon.text(isPassword ? 'visibility_off' : 'visibility');
+      });
+
+      // Submit loading animation
+      $('#login-form').submit(function() {
+        $('#btn-text').addClass('hidden');
+        $('#btn-spinner').removeClass('hidden');
+        $('#btn-login-submit').prop('disabled', true).addClass('opacity-90 cursor-not-allowed');
+      });
+
+      // Close error modal
+      $('#close-error-btn').click(function() {
+        $('#error-modal').addClass('hidden').removeClass('flex');
+        // Clean URL parameter without reloading
+        window.history.replaceState({}, document.title, window.location.pathname);
+      });
+      
       $('#error-modal').click(function(e) {
         if (e.target === this) {
           $(this).addClass('hidden').removeClass('flex');
+          window.history.replaceState({}, document.title, window.location.pathname);
         }
       });
     });
