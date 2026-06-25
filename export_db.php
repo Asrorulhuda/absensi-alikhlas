@@ -28,6 +28,7 @@ echo "-- Database: `" . $db_name . "`\n\n";
 
 echo "SET SQL_MODE = \"NO_AUTO_VALUE_ON_ZERO\";\n";
 echo "SET AUTOCOMMIT = 0;\n";
+echo "SET FOREIGN_KEY_CHECKS = 0;\n";
 echo "START TRANSACTION;\n";
 echo "SET time_zone = \"+00:00\";\n\n";
 
@@ -67,7 +68,7 @@ foreach ($tables as $table) {
                         $val = mysqli_real_escape_string($link, $row_data[$j]);
                         
                         // Handle numeric vs string values
-                        if (is_numeric($row_data[$j]) && !preg_match('/^0[0-9]+/', $row_data[$j]) && strlen($row_data[$j]) <= 10) {
+                        if (preg_match('/^[0-9]+$/', $row_data[$j]) && !preg_match('/^0[0-9]+/', $row_data[$j]) && strlen($row_data[$j]) <= 10) {
                             echo $val;
                         } else {
                             echo "'" . $val . "'";
@@ -92,6 +93,7 @@ foreach ($tables as $table) {
     }
 }
 
+echo "SET FOREIGN_KEY_CHECKS = 1;\n";
 echo "COMMIT;\n";
 exit();
 ?>
