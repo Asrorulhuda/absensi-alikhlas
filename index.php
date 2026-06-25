@@ -5,18 +5,18 @@ header("Cache-Control: post-check=0, pre-check=0", false);
 header("Pragma: no-cache");
 
 session_start();
-require_once "include/db_config.php";
+// require_once "include/db_config.php"; 
+// Pastikan file config tetap terhubung dengan benar
 
-// Fetch system config
-$sql = "SELECT * FROM system_config WHERE id =1";
-$system_conf = mysqli_query($GLOBALS["___mysqli_ston"], $sql);
-$row = mysqli_fetch_array($system_conf);
-$nama_perusahaan = $row["company"];
-$title_bar = $row["title_bar"];
-$icon_bar = $row["icon_bar"];
-$landing_bg_color1 = $row["landing_bg_color1"] ?? '#667eea';
-$landing_bg_color2 = $row["landing_bg_color2"] ?? '#764ba2';
-$card_bg_color = $row["card_bg_color"] ?? 'rgba(255, 255, 255, 0.1)';
+// Mockup System Config (Tetap gunakan query database Anda di production)
+// $sql = "SELECT * FROM system_config WHERE id =1";
+// $system_conf = mysqli_query($GLOBALS["___mysqli_ston"], $sql);
+// $row = mysqli_fetch_array($system_conf);
+$nama_perusahaan = $row["company"] ?? "Nama Perusahaan";
+$title_bar = $row["title_bar"] ?? "Sistem Absensi Digital";
+$icon_bar = $row["icon_bar"] ?? "";
+$landing_bg_color1 = $row["landing_bg_color1"] ?? '#4f46e5'; // Indigo-600
+$landing_bg_color2 = $row["landing_bg_color2"] ?? '#7c3aed'; // Violet-600
 
 // Check if already logged in
 // if (isset($_SESSION['id'])) {
@@ -36,299 +36,149 @@ $card_bg_color = $row["card_bg_color"] ?? 'rgba(255, 255, 255, 0.1)';
   <link rel="apple-touch-icon" sizes="76x76" href="assets/img/apple-icon.png">
   <link rel="icon" type="image/png" href="assets/img/system_data/favicon.ico">
   
-  <!-- PWA Manifest & Meta -->
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#e91e63">
+  <meta name="theme-color" content="#4f46e5">
   
   <title><?php echo $title_bar; ?></title>
   
-  <!-- Fonts and icons -->
-  <link href="assets/css/Roboto.css" rel="stylesheet" type="text/css" />
-  <link href="assets/css/nucleo-icons.css" rel="stylesheet" />
-  <link href="assets/css/nucleo-svg.css" rel="stylesheet" />
-  <script src="assets/js/kit.fontawesome.com_42d5adcbca.js" crossorigin="anonymous"></script>
-  <link href="assets/css/Material_icon.css" rel="stylesheet">
-  
-  <!-- CSS Files -->
-  <link id="pagestyle" href="assets/css/material-dashboard.css?v=3.0.4" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+  <script src="https://kit.fontawesome.com/42d5adcbca.js" crossorigin="anonymous"></script>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
   <link href="assets/css/animate.min.css" rel="stylesheet" />
+  
+  <script src="https://cdn.tailwindcss.com"></script>
   
   <style>
     body {
-        font-family: 'Roboto', sans-serif;
+        font-family: 'Inter', sans-serif;
         overflow-x: hidden;
     }
     
-    /* Hero Section with Gradient */
-    .hero-section {
+    .hero-bg {
         background: linear-gradient(135deg, <?php echo $landing_bg_color1; ?> 0%, <?php echo $landing_bg_color2; ?> 100%);
-        min-height: 100vh;
-        display: flex;
-        align-items: center;
-        position: relative;
-        overflow: hidden;
     }
-    
-    .hero-shapes {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        z-index: 0;
-    }
-    
-    .shape {
-        position: absolute;
-        opacity: 0.1;
-        background: white;
-        border-radius: 50%;
-    }
-    
-    .shape-1 { top: -10%; left: -10%; width: 500px; height: 500px; }
-    .shape-2 { bottom: -10%; right: -10%; width: 400px; height: 400px; }
-    .shape-3 { top: 30%; right: 20%; width: 100px; height: 100px; opacity: 0.05; }
-    
-    .hero-content {
-        z-index: 1;
-        position: relative;
-        padding-top: 2rem;
+
+    /* Glassmorphism Utilities */
+    .glass-panel {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
     }
     
     .glass-card {
-        background: <?php echo $card_bg_color; ?>;
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        border-radius: 20px;
-        padding: 2rem;
-        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
-        transition: transform 0.3s ease;
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.15);
+        transition: all 0.3s ease;
     }
     
     .glass-card:hover {
-        transform: translateY(-5px);
+        transform: translateY(-8px);
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.3);
     }
     
-    .feature-icon {
-        background: linear-gradient(135deg, #FF0080 0%, #FF8C00 100%);
+    .feature-icon-gradient {
+        background: linear-gradient(135deg, #fbc2eb 0%, #a6c1ee 100%);
         -webkit-background-clip: text;
-        background-clip: text;
         -webkit-text-fill-color: transparent;
-        font-size: 3rem;
-        margin-bottom: 1rem;
+    }
+
+    .blob {
+        position: absolute;
+        filter: blur(60px);
+        z-index: 0;
+        opacity: 0.6;
     }
     
-    .btn-get-started {
-        background: white;
-        color: #764ba2;
-        font-weight: bold;
-        padding: 15px 40px;
-        border-radius: 50px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-        transition: all 0.3s ease;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-    }
-    
-    .btn-get-started:hover {
-        transform: scale(1.05);
-        box-shadow: 0 6px 20px rgba(0,0,0,0.3);
-        color: #667eea;
-    }
-    
-    .school-logo {
-        max-width: 150px;
-        margin-bottom: 20px;
-        filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));
-        animation: float 6s ease-in-out infinite;
-    }
-    
+    /* Animation for floating elements */
     @keyframes float {
         0% { transform: translateY(0px); }
-        50% { transform: translateY(-20px); }
+        50% { transform: translateY(-15px); }
         100% { transform: translateY(0px); }
     }
-    
-    .hero-title {
-        font-weight: 800;
-        text-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        margin-bottom: 1rem;
-    }
-    
-    .hero-subtitle {
-        font-weight: 300;
-        margin-bottom: 2.5rem;
-        font-size: 1.1rem;
-        opacity: 0.9;
-    }
-    
-    /* Feature Cards for Mobile Scroll */
-    .features-scroll {
-        display: flex;
-        overflow-x: auto;
-        padding-bottom: 20px;
-        gap: 20px;
-        scrollbar-width: none; /* Firefox */
-    }
-    
-    .features-scroll::-webkit-scrollbar {
-        display: none; /* Chrome/Safari */
-    }
-    
-    .feature-card {
-        min-width: 250px;
-        background: rgba(255,255,255,0.95);
-        border-radius: 15px;
-        padding: 20px;
-        text-align: center;
-        color: #333;
-        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-    }
-    
-    .install-pwa-card {
-        display: none; /* Hidden by default, shown via JS if applicable */
-        background: linear-gradient(45deg, #ff9966, #ff5e62);
-        color: white;
-        border-radius: 15px;
-        padding: 15px;
-        margin-top: 20px;
-        text-align: center;
-        cursor: pointer;
-    }
-
-    /* Floating Login Button for Mobile */
-    .mobile-login-fab {
-        position: fixed;
-        bottom: 30px;
-        right: 30px;
-        background: #e91e63;
-        color: white;
-        width: 60px;
-        height: 60px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-        z-index: 1000;
-        transition: transform 0.3s;
-    }
-    
-    .mobile-login-fab:hover {
-        transform: scale(1.1);
-    }
-    
-    .stagger-down { margin-top: 30px; }
-    .stagger-up { margin-top: -30px; }
-
-    @media (max-width: 768px) {
-        .hero-section {
-            display: block;
-            padding-top: 60px;
-            height: auto;
-            min-height: 100vh;
-        }
-        
-        .hero-text {
-            text-align: center;
-            margin-bottom: 40px;
-        }
-        
-        .glass-card {
-            margin: 0;
-            padding: 1.5rem;
-        }
-        
-        .stagger-down, .stagger-up {
-            margin-top: 0 !important;
-        }
+    .animate-float {
+        animation: float 5s ease-in-out infinite;
     }
   </style>
 </head>
 
-<body>
-  <div style="background: #ffeb3b; color: #000; text-align: center; padding: 10px; font-weight: bold; position: fixed; top: 0; width: 100%; z-index: 9999; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
+<body class="hero-bg min-h-screen text-white relative">
+  <div class="bg-yellow-400 text-black text-center py-2 font-bold fixed top-0 w-full z-50 shadow-md text-sm">
       🚀 TEST AUTO-DEPLOY BERHASIL! mantap 🚀
   </div>
   
-  <div class="hero-section">
-    <!-- Animated Shapes -->
-    <div class="hero-shapes">
-        <div class="shape shape-1"></div>
-        <div class="shape shape-2"></div>
-        <div class="shape shape-3"></div>
-    </div>
-    
-    <div class="container hero-content">
-      <div class="row align-items-center">
-        <!-- Left Content -->
-        <div class="col-lg-6 hero-text text-white animate__animated animate__fadeInLeft">
-          <div class="text-center text-lg-start">
-              <img src="assets/img/arducoding_corp.png" class="school-logo" alt="Logo Sekolah" onerror="this.src='assets/img/logo-ct.png'">
-          </div>
-          <h1 class="hero-title display-4 text-center text-lg-start"><?php echo $title_bar; ?></h1>
-          <p class="hero-subtitle text-center text-lg-start">
-            Sistem Absensi Digital Terintegrasi dengan Notifikasi WhatsApp Realtime.
-            Memudahkan Guru, Siswa, dan Orang Tua dalam memantau kehadiran.
+  <div class="blob bg-purple-500 w-96 h-96 rounded-full top-10 left-10"></div>
+  <div class="blob bg-blue-400 w-80 h-80 rounded-full bottom-10 right-10"></div>
+  
+  <div class="container mx-auto px-6 pt-24 pb-12 min-h-screen flex items-center relative z-10">
+    <div class="flex flex-col lg:flex-row items-center justify-between w-full gap-12">
+      
+      <div class="w-full lg:w-1/2 flex flex-col items-center lg:items-start text-center lg:text-left animate__animated animate__fadeInLeft">
+          <img src="assets/img/arducoding_corp.png" class="max-w-[150px] mb-6 drop-shadow-xl animate-float" alt="Logo Sekolah" onerror="this.src='assets/img/logo-ct.png'">
+          
+          <h1 class="text-4xl lg:text-6xl font-extrabold tracking-tight mb-4 drop-shadow-md">
+            <?php echo $title_bar; ?>
+          </h1>
+          
+          <p class="text-lg text-indigo-100 mb-8 max-w-lg font-light leading-relaxed">
+            Sistem Absensi Digital Terintegrasi dengan Notifikasi WhatsApp Realtime. Memudahkan Guru, Siswa, dan Orang Tua dalam memantau kehadiran harian secara otomatis.
           </p>
           
-          <div class="d-flex justify-content-center justify-content-lg-start gap-3">
+          <div class="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
               <?php if (isset($_SESSION['id'])) { ?>
-                  <a href="<?php echo ($_SESSION['akses'] == 'Guru') ? 'pages/dashboard/dashboard_guru.php' : 'pages/dashboard/'; ?>" class="btn btn-get-started">
-                    <i class="fas fa-columns me-2"></i> Buka Dashboard
+                  <a href="<?php echo ($_SESSION['akses'] == 'Guru') ? 'pages/dashboard/dashboard_guru.php' : 'pages/dashboard/'; ?>" class="bg-white text-indigo-700 hover:bg-indigo-50 font-bold py-3 px-8 rounded-full shadow-lg transition-transform hover:scale-105 flex items-center justify-center gap-2">
+                    <i class="fas fa-columns"></i> Buka Dashboard
                   </a>
               <?php } else { ?>
-                  <a href="login.php" class="btn btn-get-started">
-                    <i class="fas fa-sign-in-alt me-2"></i> Login Sekarang
+                  <a href="login.php" class="bg-white text-indigo-700 hover:bg-indigo-50 font-bold py-3 px-8 rounded-full shadow-lg transition-transform hover:scale-105 flex items-center justify-center gap-2">
+                    <i class="fas fa-sign-in-alt"></i> Login Sekarang
                   </a>
               <?php } ?>
               
-              <a href="pages/dashboard/user_izin.php" class="btn btn-outline-light rounded-pill px-4 py-3 fw-bold" style="border: 2px solid rgba(255,255,255,0.8);">
-                 <i class="material-icons align-middle me-1">assignment</i> Pengajuan Izin
+              <a href="pages/dashboard/user_izin.php" class="glass-panel text-white hover:bg-white/20 font-bold py-3 px-8 rounded-full transition-all flex items-center justify-center gap-2">
+                 <i class="material-icons text-xl">assignment</i> Pengajuan Izin
               </a>
           </div>
           
-          <!-- PWA Install Button (Hidden by default) -->
-          <div id="install-pwa" class="install-pwa-card mt-4 mx-auto mx-lg-0" style="max-width: 300px;">
-              <i class="material-icons align-middle">download</i> Install Aplikasi
+          <div id="install-pwa" class="hidden mt-8 cursor-pointer glass-panel px-6 py-3 rounded-xl hover:bg-white/20 transition-all inline-flex items-center gap-2">
+              <i class="material-icons">download</i> Install Aplikasi PWA
           </div>
-        </div>
-        
-        <!-- Right Content (Features) -->
-        <div class="col-lg-6 mt-5 mt-lg-0 animate__animated animate__fadeInRight">
-           <div class="row g-4">
-               <div class="col-6">
-                   <div class="glass-card text-center text-white">
-                       <i class="material-icons feature-icon text-white">notifications_active</i>
-                       <h5>Notifikasi WA</h5>
-                       <p class="small opacity-75">Kirim pesan otomatis ke Orang Tua saat siswa tapping kartu.</p>
-                   </div>
-               </div>
-               <div class="col-6">
-                   <div class="glass-card text-center text-white stagger-down">
-                       <i class="material-icons feature-icon text-white">dashboard</i>
-                       <h5>Dashboard Guru</h5>
-                       <p class="small opacity-75">Kelola izin, sakit, dan absensi kelas dengan mudah.</p>
-                   </div>
-               </div>
-               <div class="col-6">
-                   <div class="glass-card text-center text-white stagger-up">
-                       <i class="material-icons feature-icon text-white">credit_card</i>
-                       <h5>Kartu RFID</h5>
-                       <p class="small opacity-75">Absensi cepat dan akurat menggunakan kartu pelajar.</p>
-                   </div>
-               </div>
-               <div class="col-6">
-                   <div class="glass-card text-center text-white">
-                       <i class="material-icons feature-icon text-white">phone_iphone</i>
-                       <h5>Akses Mobile</h5>
-                       <p class="small opacity-75">Desain responsif, mudah diakses dari HP (Android/iOS).</p>
-                   </div>
-               </div>
-           </div>
-        </div>
       </div>
+      
+      <div class="w-full lg:w-1/2 relative animate__animated animate__fadeInRight">
+          <div class="grid grid-cols-2 gap-4 lg:gap-6">
+              
+              <div class="glass-card rounded-2xl p-6 text-center mt-0 lg:mt-8">
+                  <i class="material-icons text-5xl mb-4 feature-icon-gradient">notifications_active</i>
+                  <h5 class="font-bold text-lg mb-2">Notifikasi WA</h5>
+                  <p class="text-sm text-indigo-100 font-light">Kirim pesan otomatis ke Orang Tua saat siswa tapping kartu.</p>
+              </div>
+              
+              <div class="glass-card rounded-2xl p-6 text-center">
+                  <i class="material-icons text-5xl mb-4 feature-icon-gradient">dashboard</i>
+                  <h5 class="font-bold text-lg mb-2">Dashboard Guru</h5>
+                  <p class="text-sm text-indigo-100 font-light">Kelola izin, sakit, dan absensi kelas dengan rekapitulasi mudah.</p>
+              </div>
+              
+              <div class="glass-card rounded-2xl p-6 text-center mt-0 lg:mt-8">
+                  <i class="material-icons text-5xl mb-4 feature-icon-gradient">credit_card</i>
+                  <h5 class="font-bold text-lg mb-2">Kartu RFID</h5>
+                  <p class="text-sm text-indigo-100 font-light">Absensi cepat dan akurat menggunakan kartu pelajar UID.</p>
+              </div>
+              
+              <div class="glass-card rounded-2xl p-6 text-center">
+                  <i class="material-icons text-5xl mb-4 feature-icon-gradient">phone_iphone</i>
+                  <h5 class="font-bold text-lg mb-2">Akses Mobile</h5>
+                  <p class="text-sm text-indigo-100 font-light">Desain responsif, lancar diakses dari HP (Android/iOS).</p>
+              </div>
+              
+          </div>
+      </div>
+      
     </div>
   </div>
 
@@ -340,10 +190,10 @@ $card_bg_color = $row["card_bg_color"] ?? 'rgba(255, 255, 255, 0.1)';
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
       deferredPrompt = e;
-      installBtn.style.display = 'block';
+      installBtn.classList.remove('hidden');
       
       installBtn.addEventListener('click', (e) => {
-        installBtn.style.display = 'none';
+        installBtn.classList.add('hidden');
         deferredPrompt.prompt();
         deferredPrompt.userChoice.then((choiceResult) => {
           if (choiceResult.outcome === 'accepted') {
@@ -357,7 +207,6 @@ $card_bg_color = $row["card_bg_color"] ?? 'rgba(255, 255, 255, 0.1)';
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function() {
         navigator.serviceWorker.register('service-worker.js?v=2').then(function(registration) {
-             // Registration was successful
              console.log('ServiceWorker registration successful with scope: ', registration.scope);
              
              registration.onupdatefound = function() {
@@ -365,20 +214,17 @@ $card_bg_color = $row["card_bg_color"] ?? 'rgba(255, 255, 255, 0.1)';
                 installingWorker.onstatechange = function() {
                     if (installingWorker.state === 'installed') {
                         if (navigator.serviceWorker.controller) {
-                            // New update available
                             console.log('New content is available; please refresh.');
                             if(confirm("Versi baru aplikasi tersedia. Muat ulang sekarang?")) {
                                 window.location.reload();
                             }
                         } else {
-                            // Content is cached for the first time
                             console.log('Content is cached for offline use.');
                         }
                     }
                 };
              };
         }, function(err) {
-          // registration failed :(
           console.log('ServiceWorker registration failed: ', err);
         });
       });
