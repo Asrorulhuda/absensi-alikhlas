@@ -89,6 +89,21 @@ $login_url_encoded = urlencode($login_url);
         color: #1e293b;
     }
     
+    /* Screen View display rules */
+    #format-mini-container, #format-premium-container, #format-table-container {
+        display: none;
+    }
+    
+    body.format-mini #format-mini-container {
+        display: grid;
+    }
+    body.format-premium #format-premium-container {
+        display: grid;
+    }
+    body.format-table #format-table-container {
+        display: block;
+    }
+    
     /* Print Specific Styles */
     @media print {
         .no-print {
@@ -113,18 +128,23 @@ $login_url_encoded = urlencode($login_url);
             break-inside: avoid;
         }
         
-        /* Layout media overrides */
-        .print-grid-premium {
-            display: grid !important;
-            grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-            gap: 10px !important;
+        /* Force hide all formats on paper by default */
+        #format-mini-container, #format-premium-container, #format-table-container {
+            display: none !important;
         }
-        .print-grid-mini {
+        
+        /* Show and format only the active layout during print */
+        body.format-mini #format-mini-container {
             display: grid !important;
             grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
             gap: 6px !important;
         }
-        .print-table {
+        body.format-premium #format-premium-container {
+            display: grid !important;
+            grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+            gap: 10px !important;
+        }
+        body.format-table #format-table-container {
             display: table !important;
             width: 100% !important;
         }
@@ -140,7 +160,7 @@ $login_url_encoded = urlencode($login_url);
     }
   </style>
 </head>
-<body class="min-h-screen antialiased bg-slate-50">
+<body class="min-h-screen antialiased bg-slate-50 format-mini">
 
   <!-- TOP HEADER / CONTROLS (Screen Only) -->
   <header class="no-print w-full bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
@@ -289,7 +309,7 @@ $login_url_encoded = urlencode($login_url);
       <!-- ============================================== -->
       <!-- 2. PREMIUM FORMAT CONTAINER (3 Columns, original layout) -->
       <!-- ============================================== -->
-      <div id="format-premium-container" class="hidden grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 print-grid-premium">
+      <div id="format-premium-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         
         <?php foreach ($users_list as $u): 
             $lvl = $u['level_akses'];
@@ -393,7 +413,7 @@ $login_url_encoded = urlencode($login_url);
       <!-- ============================================== -->
       <!-- 3. TABLE FORMAT VIEW (Grid Table list) -->
       <!-- ============================================== -->
-      <div id="format-table-container" class="hidden bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm print-table">
+      <div id="format-table-container" class="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
         <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center no-print">
           <h2 class="font-extrabold text-sm text-slate-800">Daftar Akun Pengguna</h2>
           <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider"><?php echo count($users_list); ?> Akun Terdaftar</span>
@@ -462,33 +482,28 @@ $login_url_encoded = urlencode($login_url);
     $(document).ready(function() {
       // Toggle to Mini Card view
       $('#btn-format-mini').click(function() {
-        setFormatActive($(this));
-        $('#format-mini-container').removeClass('hidden');
-        $('#format-premium-container').addClass('hidden');
-        $('#format-table-container').addClass('hidden');
+        setFormatActive($(this), 'format-mini');
       });
 
       // Toggle to Premium view
       $('#btn-format-premium').click(function() {
-        setFormatActive($(this));
-        $('#format-premium-container').removeClass('hidden');
-        $('#format-mini-container').addClass('hidden');
-        $('#format-table-container').addClass('hidden');
+        setFormatActive($(this), 'format-premium');
       });
 
       // Toggle to Table view
       $('#btn-format-table').click(function() {
-        setFormatActive($(this));
-        $('#format-table-container').removeClass('hidden');
-        $('#format-premium-container').addClass('hidden');
-        $('#format-mini-container').addClass('hidden');
+        setFormatActive($(this), 'format-table');
       });
 
-      function setFormatActive(btn) {
+      function setFormatActive(btn, formatClass) {
+        // Update button styles
         $('#btn-format-mini, #btn-format-premium, #btn-format-table')
           .removeClass('bg-white text-slate-800 shadow-sm')
           .addClass('text-slate-500 hover:text-slate-800');
         btn.removeClass('text-slate-500 hover:text-slate-800').addClass('bg-white text-slate-800 shadow-sm');
+        
+        // Update body active class
+        $('body').removeClass('format-mini format-premium format-table').addClass(formatClass);
       }
     });
   </script>
