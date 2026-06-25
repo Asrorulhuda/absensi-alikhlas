@@ -219,7 +219,7 @@ if(isset($_POST["username"]) && !empty($_POST["username"])){
       </a>
       
       <div class="flex justify-center mb-4">
-        <img src="assets/img/arducoding_corp.png" class="max-w-[70px] drop-shadow-xl animate__animated animate__pulse animate__infinite" alt="Logo" onerror="this.src='assets/img/logo-ct.png'">
+        <img src="assets/img/asr_edu.png" class="max-w-[70px] drop-shadow-xl animate__animated animate__pulse animate__infinite" alt="Logo" onerror="this.src='assets/img/logo-ct.png'">
       </div>
       
       <h3 class="text-2xl font-extrabold tracking-tight text-white mb-1"><?php echo $nama_perusahaan; ?></h3>

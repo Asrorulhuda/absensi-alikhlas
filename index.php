@@ -183,9 +183,7 @@ if ($q_guru && mysqli_num_rows($q_guru) > 0) {
       
       <!-- Logo / Brand Name -->
       <a href="index.php" class="flex items-center gap-3 font-extrabold text-2xl text-brand-primary">
-        <div class="bg-blue-600 text-white p-2 rounded-xl shadow-md shadow-blue-500/20">
-          <i class="material-icons-round text-base block">fingerprint</i>
-        </div>
+        <img src="assets/img/asr_edu.png" class="h-8 object-contain" alt="ASR.EDU Logo">
         <span class="tracking-tight text-xl"><?php echo $nama_perusahaan; ?></span>
       </a>
 
@@ -219,6 +217,9 @@ if ($q_guru && mysqli_num_rows($q_guru) > 0) {
       <!-- Left Content -->
       <div class="flex flex-col items-center lg:items-start text-center lg:text-left animate__animated animate__fadeInLeft">
         
+        <!-- Logo Image -->
+        <img src="assets/img/asr_edu.png" class="max-w-[120px] mb-6 drop-shadow-md animate-float" alt="Logo ASR.EDU">
+
         <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-600 mb-6 border border-blue-100/50">
           <span class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
           Sistem Absensi Terpercaya
@@ -730,7 +731,7 @@ if ($q_guru && mysqli_num_rows($q_guru) > 0) {
       <!-- Bottom Block -->
       <div class="flex flex-col sm:flex-row justify-between items-center pt-8 text-[11px] text-slate-500 gap-4">
         <span>&copy; <?php echo date('Y'); ?> <?php echo $nama_perusahaan; ?>. Hak Cipta Dilindungi.</span>
-        <span class="font-semibold text-slate-400">Powered by Arducoding Corp</span>
+        <span class="font-semibold text-slate-400">Powered by ASR.EDU</span>
       </div>
 
     </div>
