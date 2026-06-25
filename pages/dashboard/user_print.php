@@ -298,30 +298,30 @@ $login_url_encoded = urlencode($login_url);
             <div class="flex-1 space-y-1">
               <div class="leading-none">
                 <span class="text-[6px] text-slate-400 font-bold uppercase tracking-wider block">Nama Lengkap</span>
-                <span class="text-[10px] font-extrabold text-slate-850 block truncate leading-tight"><?php echo htmlspecialchars($u['name']); ?></span>
-              </div>
-              
-              <div class="grid grid-cols-5 gap-1.5 items-start mt-0.5">
-                <div class="col-span-3">
-                  <span class="text-[6px] text-slate-400 font-bold uppercase tracking-wider block">Username</span>
-                  <span class="text-[9px] font-bold text-slate-700 bg-slate-50 px-1 py-0.5 rounded border border-slate-100 block break-all tracking-wide leading-tight select-all"><?php echo htmlspecialchars($u['username']); ?></span>
-                </div>
-                <div class="col-span-2 text-right">
-                  <span class="text-[6px] text-slate-400 font-bold uppercase tracking-wider block">Password</span>
-                  <span class="text-[9px] font-extrabold text-slate-800 block break-all leading-tight select-all"><?php echo htmlspecialchars($pw_hint); ?></span>
+                <div class="flex items-center justify-between gap-1">
+                  <span class="text-[10px] font-extrabold text-slate-850 block truncate leading-tight"><?php echo htmlspecialchars($u['name']); ?></span>
+                  <?php if ($lvl == 'User' && !empty($u['s_kelas'])): ?>
+                    <span class="text-[7px] bg-slate-150 text-slate-600 font-extrabold px-1 rounded flex-shrink-0">Kls <?php echo htmlspecialchars($u['s_kelas']); ?></span>
+                  <?php elseif ($lvl == 'Guru' && !empty($u['g_jabatan'])): ?>
+                    <span class="text-[7px] bg-slate-150 text-slate-600 font-extrabold px-1 rounded truncate max-w-[65px] flex-shrink-0"><?php echo htmlspecialchars($u['g_jabatan']); ?></span>
+                  <?php endif; ?>
                 </div>
               </div>
               
-              <div class="mt-1 flex items-center justify-between">
+              <div class="mt-1">
+                <span class="text-[6px] text-slate-400 font-bold uppercase tracking-wider block">Username</span>
+                <span class="text-[9px] font-bold text-slate-700 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100 block break-all tracking-wide leading-tight select-all"><?php echo htmlspecialchars($u['username']); ?></span>
+              </div>
+              
+              <div class="grid grid-cols-2 gap-2 mt-1">
                 <div>
+                  <span class="text-[6px] text-slate-400 font-bold uppercase tracking-wider block">Password</span>
+                  <span class="text-[9px] font-extrabold text-slate-800 block truncate leading-none select-all"><?php echo htmlspecialchars($pw_hint); ?></span>
+                </div>
+                <div class="text-right">
                   <span class="text-[6px] text-slate-400 font-bold uppercase tracking-wider block">UID Kartu</span>
                   <span class="text-[9px] font-mono font-bold text-slate-650 block leading-none select-all"><?php echo htmlspecialchars($uid); ?></span>
                 </div>
-                <?php if ($lvl == 'User' && !empty($u['s_kelas'])): ?>
-                  <span class="text-[7px] bg-slate-150 text-slate-600 font-extrabold px-1 rounded">Kls <?php echo htmlspecialchars($u['s_kelas']); ?></span>
-                <?php elseif ($lvl == 'Guru' && !empty($u['g_jabatan'])): ?>
-                  <span class="text-[7px] bg-slate-150 text-slate-600 font-extrabold px-1 rounded truncate max-w-[65px]"><?php echo htmlspecialchars($u['g_jabatan']); ?></span>
-                <?php endif; ?>
               </div>
             </div>
             
