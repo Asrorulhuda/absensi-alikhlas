@@ -573,12 +573,12 @@ if ($q_guru && mysqli_num_rows($q_guru) > 0) {
         
         for ($i = 0; $i < 4; $i++) {
             $g = $guru_list[$i] ?? $fallback_guru[$i];
-            $pic = !empty($g['g_picture']) ? $g['g_picture'] : 'assets/img/logo-ct.png';
+            $pic = !empty($g['g_picture']) ? $g['g_picture'] : 'assets/img/user_pict/user_default.png';
             $bg = $bg_colors[$i % 4];
             ?>
             <div class="<?php echo $bg; ?> border border-slate-100 p-5 rounded-2xl flex flex-col hover:shadow-md transition-all h-[200px]">
               <div class="flex items-center gap-3 mb-3">
-                <img src="<?php echo htmlspecialchars($pic); ?>" class="w-10 h-10 rounded-full object-cover border border-white shadow-sm" onerror="this.src='assets/img/logo-ct.png'">
+                <img src="<?php echo htmlspecialchars($pic); ?>" class="w-10 h-10 rounded-full object-cover border border-white shadow-sm" onerror="this.onerror=null; this.src='assets/img/user_pict/user_default.png'">
                 <div class="overflow-hidden">
                   <span class="font-extrabold text-slate-800 text-xs sm:text-sm block truncate"><?php echo htmlspecialchars($g['g_nama']); ?></span>
                   <span class="text-[9px] text-slate-400 font-medium block truncate mt-0.5"><?php echo htmlspecialchars($g['g_jabatan']); ?></span>
