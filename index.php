@@ -5,13 +5,13 @@ header("Cache-Control: post-check=0, pre-check=0", false);
 header("Pragma: no-cache");
 
 session_start();
-// require_once "include/db_config.php"; 
-// Pastikan file config tetap terhubung dengan benar
+require_once "include/db_config.php"; 
 
-// Mockup System Config (Tetap gunakan query database Anda di production)
-// $sql = "SELECT * FROM system_config WHERE id =1";
-// $system_conf = mysqli_query($GLOBALS["___mysqli_ston"], $sql);
-// $row = mysqli_fetch_array($system_conf);
+// Fetch System Config from Database
+$sql = "SELECT * FROM system_config WHERE id = 1";
+$system_conf = mysqli_query($GLOBALS["___mysqli_ston"], $sql);
+$row = mysqli_fetch_array($system_conf);
+
 $nama_perusahaan = $row["company"] ?? "Nama Perusahaan";
 $title_bar = $row["title_bar"] ?? "Sistem Absensi Digital";
 $icon_bar = $row["icon_bar"] ?? "";
@@ -19,14 +19,14 @@ $landing_bg_color1 = $row["landing_bg_color1"] ?? '#4f46e5'; // Indigo-600
 $landing_bg_color2 = $row["landing_bg_color2"] ?? '#7c3aed'; // Violet-600
 
 // Check if already logged in
-// if (isset($_SESSION['id'])) {
-//     if ($_SESSION['akses'] == 'Guru') {
-//         header('Location: pages/dashboard/dashboard_guru.php');
-//     } else {
-//         header('Location: pages/dashboard/');
-//     }
-//     exit();
-// }
+if (isset($_SESSION['id'])) {
+    if ($_SESSION['akses'] == 'Guru') {
+        header('Location: pages/dashboard/dashboard_guru.php');
+    } else {
+        header('Location: pages/dashboard/');
+    }
+    exit();
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -34,10 +34,10 @@ $landing_bg_color2 = $row["landing_bg_color2"] ?? '#7c3aed'; // Violet-600
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
   <link rel="apple-touch-icon" sizes="76x76" href="assets/img/apple-icon.png">
-  <link rel="icon" type="image/png" href="assets/img/system_data/favicon.ico">
+  <link rel="icon" type="image/png" href="assets/img/system_data/<?php echo !empty($icon_bar) ? $icon_bar : 'favicon.ico'; ?>">
   
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#4f46e5">
+  <meta name="theme-color" content="<?php echo $landing_bg_color1; ?>">
   
   <title><?php echo $title_bar; ?></title>
   
