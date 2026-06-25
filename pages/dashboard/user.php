@@ -10,6 +10,8 @@
 	$_SESSION['pages']="User";
     
 	require_once "../../include/db_config.php";
+	require_once "../../include/helpers.php";
+	sync_user_accounts();
 	include "control/confignusers_data.php";
 	
 	$sql = "SELECT * FROM users";

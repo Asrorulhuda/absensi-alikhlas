@@ -9,6 +9,8 @@ if (!isset($_SESSION['akses']) || $_SESSION['akses'] != 'Admin') {
 }
 
 require_once "../../include/db_config.php";
+require_once "../../include/helpers.php";
+sync_user_accounts();
 
 // Fetch system settings for branding
 $sql_conf = "SELECT * FROM system_config WHERE id = 1";
