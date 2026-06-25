@@ -22,10 +22,26 @@ $logo_print = $conf_row["print_logo"] ?? "assets/img/asr_edu.png";
 // Determine active filter
 $role_filter = "";
 $active_role = "all";
+$active_class = "";
+
+// Fetch distinct active classes from database for student filtering dropdown
+$classes_list = [];
+$q_classes = mysqli_query($GLOBALS["___mysqli_ston"], "SELECT DISTINCT s_kelas FROM data_siswa WHERE s_status = 'Aktif' AND s_kelas IS NOT NULL AND s_kelas != '' ORDER BY s_kelas ASC");
+if ($q_classes) {
+    while ($c_row = mysqli_fetch_assoc($q_classes)) {
+        $classes_list[] = $c_row['s_kelas'];
+    }
+}
 
 if (isset($_GET['role']) && in_array($_GET['role'], ['Admin', 'Guru', 'User'])) {
     $active_role = $_GET['role'];
     $role_filter = " WHERE u.level_akses = '" . mysqli_real_escape_string($GLOBALS["___mysqli_ston"], $active_role) . "'";
+    
+    // Add class filter for Siswa/User
+    if ($active_role == 'User' && isset($_GET['kelas']) && !empty($_GET['kelas'])) {
+        $active_class = $_GET['kelas'];
+        $role_filter .= " AND s.s_kelas = '" . mysqli_real_escape_string($GLOBALS["___mysqli_ston"], $active_class) . "'";
+    }
 } elseif (isset($_GET['id'])) {
     $id = intval(base64_decode($_GET['id']));
     $role_filter = " WHERE u.id = $id";
@@ -187,6 +203,21 @@ $login_url_encoded = urlencode($login_url);
           <a href="?role=Guru" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all <?php echo $active_role == 'Guru' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'; ?>">Guru</a>
           <a href="?role=User" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all <?php echo $active_role == 'User' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'; ?>">Siswa</a>
         </div>
+
+        <!-- Class Filter Dropdown (Only visible if role=User/Siswa) -->
+        <?php if ($active_role == 'User'): ?>
+          <div class="flex items-center gap-1.5 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200">
+            <span class="text-xs font-bold text-slate-500">Kelas:</span>
+            <select id="select-class-filter" class="bg-white border-0 text-xs font-bold text-slate-850 rounded-lg px-2.5 py-1 focus:outline-none focus:ring-0">
+              <option value="">Semua Kelas</option>
+              <?php foreach ($classes_list as $cls): ?>
+                <option value="<?php echo htmlspecialchars($cls); ?>" <?php echo $active_class == $cls ? 'selected' : ''; ?>>
+                  Kelas <?php echo htmlspecialchars($cls); ?>
+                </option>
+              <?php endforeach; ?>
+            </select>
+          </div>
+        <?php endif; ?>
 
         <!-- Layout Selector (Premium Slips, Mini Cards, Table) -->
         <div class="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
@@ -505,6 +536,16 @@ $login_url_encoded = urlencode($login_url);
         // Update body active class
         $('body').removeClass('format-mini format-premium format-table').addClass(formatClass);
       }
+
+      // Handle Class Filter Change
+      $('#select-class-filter').change(function() {
+        const val = $(this).val();
+        if (val) {
+          window.location.href = `?role=User&kelas=${encodeURIComponent(val)}`;
+        } else {
+          window.location.href = '?role=User';
+        }
+      });
     });
   </script>
 </body>
