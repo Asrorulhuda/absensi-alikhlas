@@ -1,5 +1,7 @@
 # Sensitive files
 include/db_config.php
+*.sql
+db/*.sql
 
 # Error & deploy logs
 error_log
