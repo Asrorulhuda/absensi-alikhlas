@@ -27,6 +27,54 @@ if (isset($_SESSION['id'])) {
     }
     exit();
 }
+
+$today = date('Y-m-d');
+
+// --- 1. Total Students ---
+$q_total_siswa = mysqli_query($GLOBALS["___mysqli_ston"], "SELECT COUNT(*) as cnt FROM data_siswa");
+$total_siswa = mysqli_fetch_assoc($q_total_siswa)['cnt'] ?? 0;
+
+// --- 2. Active Students ---
+$q_active_siswa = mysqli_query($GLOBALS["___mysqli_ston"], "SELECT COUNT(*) as cnt FROM data_siswa WHERE s_status = 'Aktif'");
+$active_siswa = mysqli_fetch_assoc($q_active_siswa)['cnt'] ?? 0;
+
+// --- 3. Total Teachers ---
+$q_total_guru = mysqli_query($GLOBALS["___mysqli_ston"], "SELECT COUNT(*) as cnt FROM data_guru");
+$total_guru = mysqli_fetch_assoc($q_total_guru)['cnt'] ?? 0;
+
+// --- 4. Distinct Active Classes ---
+$q_total_kelas = mysqli_query($GLOBALS["___mysqli_ston"], "SELECT COUNT(DISTINCT s_kelas) as cnt FROM data_siswa WHERE s_status = 'Aktif' AND s_kelas IS NOT NULL AND s_kelas != ''");
+$total_kelas = mysqli_fetch_assoc($q_total_kelas)['cnt'] ?? 0;
+
+// --- 5. Total WA Notifications ---
+$q_total_wa = mysqli_query($GLOBALS["___mysqli_ston"], "SELECT COUNT(*) as cnt FROM wa_queue");
+$total_wa = mysqli_fetch_assoc($q_total_wa)['cnt'] ?? 0;
+
+// --- 6. Today's Combined Attendance Stats ---
+// Hadir
+$q_today_hadir = mysqli_query($GLOBALS["___mysqli_ston"], "SELECT COUNT(DISTINCT uid) as cnt FROM data_absen WHERE tanggal = '$today' AND (keterangan IN ('HADIR', 'COMPLETE') OR status IN ('IN', 'OUT', 'KEGIATAN')) AND keterangan NOT IN ('SAKIT', 'IZIN')");
+$today_hadir = mysqli_fetch_assoc($q_today_hadir)['cnt'] ?? 0;
+
+// Izin
+$q_today_izin = mysqli_query($GLOBALS["___mysqli_ston"], "SELECT COUNT(DISTINCT uid) as cnt FROM data_absen WHERE tanggal = '$today' AND keterangan = 'IZIN'");
+$today_izin = mysqli_fetch_assoc($q_today_izin)['cnt'] ?? 0;
+
+// Sakit
+$q_today_sakit = mysqli_query($GLOBALS["___mysqli_ston"], "SELECT COUNT(DISTINCT uid) as cnt FROM data_absen WHERE tanggal = '$today' AND keterangan = 'SAKIT'");
+$today_sakit = mysqli_fetch_assoc($q_today_sakit)['cnt'] ?? 0;
+
+// Alpha
+$q_today_alpha = mysqli_query($GLOBALS["___mysqli_ston"], "SELECT COUNT(*) as cnt FROM data_siswa WHERE s_status = 'Aktif' AND s_uid NOT IN (SELECT uid FROM data_absen WHERE tanggal = '$today')");
+$today_alpha = mysqli_fetch_assoc($q_today_alpha)['cnt'] ?? 0;
+
+// --- 7. Fetch Real Teachers ---
+$guru_list = [];
+$q_guru = mysqli_query($GLOBALS["___mysqli_ston"], "SELECT g_nama, g_jabatan, g_picture FROM data_guru ORDER BY g_id DESC LIMIT 4");
+if ($q_guru && mysqli_num_rows($q_guru) > 0) {
+    while ($g_row = mysqli_fetch_assoc($q_guru)) {
+        $guru_list[] = $g_row;
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -93,6 +141,36 @@ if (isset($_SESSION['id'])) {
     }
     .animate-pulse-slow {
         animation: pulse-slow 8s ease-in-out infinite;
+    }
+
+    /* Override last-item styles for the hero widget so they look readable on a white card */
+    #hero-last-scans .last-item {
+        border-bottom: 1px solid #f1f5f9 !important;
+        color: #334155 !important;
+        padding: 10px 0 !important;
+        background: transparent !important;
+    }
+    #hero-last-scans .last-item div {
+        color: #334155 !important;
+    }
+    #hero-last-scans .last-item div > div {
+        font-weight: 600 !important;
+        color: #1e293b !important;
+        font-size: 13px !important;
+    }
+    #hero-last-scans .last-item div > div:last-child {
+        color: #64748b !important;
+        font-size: 10px !important;
+    }
+    #hero-last-scans .last-item span {
+        color: #475569 !important;
+    }
+    #hero-last-scans .last-item span[style*="background"] {
+        color: #ffffff !important;
+        font-size: 10px !important;
+        padding: 2px 6px !important;
+        border-radius: 4px !important;
+        font-weight: bold !important;
     }
   </style>
 </head>
@@ -170,76 +248,58 @@ if (isset($_SESSION['id'])) {
 
       </div>
 
-      <!-- Right Mockup UI Illustration -->
+      <!-- Right Mockup UI Illustration (Real-time Scan Monitor) -->
       <div class="relative w-full max-w-lg mx-auto flex items-center justify-center py-6 animate__animated animate__fadeInRight">
         
         <!-- Soft Blurry Circles -->
         <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 rounded-full bg-gradient-to-tr from-blue-200/50 to-indigo-200/50 blur-3xl opacity-60"></div>
         
-        <!-- Main Mockup Card -->
+        <!-- Main Live Card -->
         <div class="bg-white rounded-3xl border border-slate-100 shadow-2xl shadow-slate-200/60 p-6 w-full max-w-sm relative z-10 animate-float">
           
           <!-- Card Header -->
           <div class="border-b border-slate-100 pb-4 mb-4 text-center">
-            <span class="font-extrabold text-slate-800 text-xs block mb-1">Rekap Absensi — Kelas X-A</span>
+            <span class="font-extrabold text-slate-800 text-xs block mb-1">Live Monitor Presensi</span>
             <div class="flex items-center justify-center gap-2 mt-2">
-              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-              <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Senin, 23 Juni 2025</span>
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span>
+              <span id="live-clock" class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Loading clock...</span>
             </div>
           </div>
 
           <!-- Status stats boxes -->
           <div class="grid grid-cols-3 gap-2 text-center mb-6">
             <div class="bg-emerald-50 border border-emerald-100 text-emerald-600 py-2 rounded-xl">
-              <span class="block text-xs font-extrabold">25</span>
+              <span id="hero-stats-hadir" class="block text-xs font-extrabold"><?php echo $today_hadir; ?></span>
               <span class="block text-[8px] font-bold uppercase tracking-wider opacity-75">Hadir</span>
             </div>
             <div class="bg-amber-50 border border-amber-100 text-amber-600 py-2 rounded-xl">
-              <span class="block text-xs font-extrabold">2</span>
-              <span class="block text-[8px] font-bold uppercase tracking-wider opacity-75">Izin</span>
+              <span id="hero-stats-izin" class="block text-xs font-extrabold"><?php echo ($today_izin + $today_sakit); ?></span>
+              <span class="block text-[8px] font-bold uppercase tracking-wider opacity-75">Izin/Sakit</span>
             </div>
             <div class="bg-rose-50 border border-rose-100 text-rose-600 py-2 rounded-xl">
-              <span class="block text-xs font-extrabold">1</span>
-              <span class="block text-[8px] font-bold uppercase tracking-wider opacity-75">Alpha</span>
+              <span id="hero-stats-alpha" class="block text-xs font-extrabold"><?php echo $today_alpha; ?></span>
+              <span class="block text-[8px] font-bold uppercase tracking-wider opacity-75">Belum Absen</span>
             </div>
           </div>
 
-          <!-- Student Rows -->
-          <div class="space-y-3">
-            <div class="flex justify-between items-center py-2 border-b border-slate-50">
-              <div class="flex items-center gap-2">
-                <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-                <span class="text-xs font-bold text-slate-700">Andika Pratama</span>
-              </div>
-              <span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded text-[9px] font-extrabold">Hadir</span>
-            </div>
-            
-            <div class="flex justify-between items-center py-2 border-b border-slate-50">
-              <div class="flex items-center gap-2">
-                <span class="w-2 h-2 rounded-full bg-amber-500"></span>
-                <span class="text-xs font-bold text-slate-700">Salsabila Putri</span>
-              </div>
-              <span class="px-2 py-0.5 bg-amber-100 text-amber-700 rounded text-[9px] font-extrabold">Izin Sakit</span>
-            </div>
-
-            <div class="flex justify-between items-center py-2">
-              <div class="flex items-center gap-2">
-                <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-                <span class="text-xs font-bold text-slate-700">Budi Santoso</span>
-              </div>
-              <span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded text-[9px] font-extrabold">Hadir</span>
+          <!-- Student Rows (Dynamically Polled) -->
+          <div id="hero-last-scans" class="space-y-3 min-h-[150px]">
+            <div class="text-center py-8 text-slate-400 text-xs flex flex-col items-center justify-center gap-2">
+              <i class="material-icons-round animate-spin">sync</i>
+              <span>Menghubungkan monitor...</span>
             </div>
           </div>
 
-          <!-- Bottom Tap Card box -->
-          <div class="mt-6 p-4 bg-slate-50 border border-slate-100 rounded-2xl flex items-center gap-3">
+          <!-- Bottom Tap Card box (Simulation Button) -->
+          <div id="sim-tap-btn" class="mt-6 p-4 bg-slate-50 hover:bg-slate-100 border border-slate-100 rounded-2xl flex items-center gap-3 cursor-pointer transition-all hover:scale-[1.01]">
             <div class="bg-brand-primary text-white p-2.5 rounded-xl shadow-md">
-              <i class="material-icons-round text-sm block">contactless</i>
+              <i class="material-icons-round text-sm block animate-pulse">contactless</i>
             </div>
-            <div>
-              <span class="text-[8px] text-slate-400 font-extrabold uppercase tracking-wider block">Tap Kartu RFID</span>
-              <span class="text-xs font-bold text-slate-700 block">Tunjukkan kartu pelajar</span>
+            <div class="flex-1">
+              <span class="text-[8px] text-slate-400 font-extrabold uppercase tracking-wider block">Simulasi Tap RFID</span>
+              <span class="text-xs font-bold text-slate-700 block">Uji coba tap kartu di sini</span>
             </div>
+            <span class="text-[9px] bg-blue-100 text-blue-800 font-bold px-2 py-0.5 rounded-md">TEST</span>
           </div>
 
         </div>
@@ -247,8 +307,8 @@ if (isset($_SESSION['id'])) {
         <!-- Floating Badge Top Right -->
         <div class="absolute -top-2 -right-2 bg-white rounded-2xl shadow-xl px-4 py-3 border border-slate-100 flex items-center gap-2 z-20 animate-pulse-slow">
           <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-          <span class="text-[11px] font-extrabold text-slate-800">127 siswa</span>
-          <span class="text-[11px] text-slate-400 font-medium">sudah absen hari ini</span>
+          <span id="hero-absen-count" class="text-[11px] font-extrabold text-slate-800"><?php echo $today_hadir; ?> siswa</span>
+          <span class="text-[11px] text-slate-400 font-medium">absen hari ini</span>
         </div>
 
         <!-- Floating Badge Bottom Left -->
@@ -257,8 +317,8 @@ if (isset($_SESSION['id'])) {
             <i class="material-icons-round text-xs">done</i>
           </div>
           <div>
-            <span class="text-[10px] font-extrabold text-slate-800 block">Notif WA terkirim</span>
-            <span class="text-[9px] text-slate-400 block leading-none mt-0.5">Detik ini ke orang tua</span>
+            <span class="text-[10px] font-extrabold text-slate-800 block">Notif WA Aktif</span>
+            <span class="text-[9px] text-slate-400 block leading-none mt-0.5">Langsung ke orang tua</span>
           </div>
         </div>
 
@@ -272,23 +332,23 @@ if (isset($_SESSION['id'])) {
     <div class="max-w-7xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4 gap-8">
       
       <div class="text-center md:border-r border-slate-100 py-2">
-        <span class="text-3xl sm:text-4xl font-extrabold text-[#0B2545]">1.200+</span>
+        <span class="text-3xl sm:text-4xl font-extrabold text-[#0B2545]"><?php echo $total_siswa; ?>+</span>
         <span class="block text-[10px] text-slate-400 font-extrabold uppercase tracking-wider mt-2">Total Siswa Terdaftar</span>
       </div>
 
       <div class="text-center md:border-r border-slate-100 py-2">
-        <span class="text-3xl sm:text-4xl font-extrabold text-[#0B2545]">98%</span>
-        <span class="block text-[10px] text-slate-400 font-extrabold uppercase tracking-wider mt-2">Akurasi Data Absensi</span>
+        <span class="text-3xl sm:text-4xl font-extrabold text-[#0B2545]"><?php echo $active_siswa; ?></span>
+        <span class="block text-[10px] text-slate-400 font-extrabold uppercase tracking-wider mt-2">Siswa Aktif</span>
       </div>
 
       <div class="text-center md:border-r border-slate-100 py-2">
-        <span class="text-3xl sm:text-4xl font-extrabold text-[#0B2545]">45+</span>
+        <span class="text-3xl sm:text-4xl font-extrabold text-[#0B2545]"><?php echo $total_kelas; ?></span>
         <span class="block text-[10px] text-slate-400 font-extrabold uppercase tracking-wider mt-2">Kelas Aktif</span>
       </div>
 
       <div class="text-center py-2">
-        <span class="text-3xl sm:text-4xl font-extrabold text-[#0B2545]">3 Dtk</span>
-        <span class="block text-[10px] text-slate-400 font-extrabold uppercase tracking-wider mt-2">Kecepatan Notif WA</span>
+        <span class="text-3xl sm:text-4xl font-extrabold text-[#0B2545]"><?php echo $total_wa; ?>+</span>
+        <span class="block text-[10px] text-slate-400 font-extrabold uppercase tracking-wider mt-2">Notifikasi WA Terkirim</span>
       </div>
 
     </div>
@@ -314,7 +374,7 @@ if (isset($_SESSION['id'])) {
             <i class="material-icons-round text-xl">group</i>
           </div>
           <span class="text-[9px] text-slate-400 font-extrabold uppercase tracking-wider block">Siswa Aktif</span>
-          <span class="text-base font-bold text-slate-800 mt-1 block">1.200</span>
+          <span class="text-base font-bold text-slate-800 mt-1 block"><?php echo $active_siswa; ?></span>
         </div>
 
         <div class="bg-white border border-slate-100 p-6 rounded-2xl shadow-sm text-center flex flex-col items-center justify-center">
@@ -322,7 +382,7 @@ if (isset($_SESSION['id'])) {
             <i class="material-icons-round text-xl">chat</i>
           </div>
           <span class="text-[9px] text-slate-400 font-extrabold uppercase tracking-wider block">Notif Terkirim</span>
-          <span class="text-base font-bold text-slate-800 mt-1 block">8.340</span>
+          <span class="text-base font-bold text-slate-800 mt-1 block"><?php echo $total_wa; ?></span>
         </div>
 
         <div class="bg-white border border-slate-100 p-6 rounded-2xl shadow-sm text-center flex flex-col items-center justify-center">
@@ -482,72 +542,60 @@ if (isset($_SESSION['id'])) {
     </div>
   </section>
 
-  <!-- Wali Kelas / Guru Section -->
+  <!-- Wali Kelas / Guru Section (Loads Real Teachers Dynamically) -->
   <section class="max-w-7xl mx-auto px-6 py-20 bg-white">
     <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
       
       <!-- Text Left -->
       <div class="flex flex-col items-center lg:items-start text-center lg:text-left self-center">
-        <span class="text-xs font-bold uppercase tracking-wider text-blue-600">Wali Kelas</span>
+        <span class="text-xs font-bold uppercase tracking-wider text-blue-600">Staff Pendidik</span>
         <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-2 mb-4 leading-tight">Guru Berpengalaman Terkelola</h2>
         <p class="text-xs text-slate-400 font-light leading-relaxed mb-6">
           Setiap wali kelas punya akses mandiri untuk memantau dan mengelola absensi kelasnya masing-masing.
         </p>
         <a href="login.php" class="bg-[#0B2545] hover:bg-[#134074] text-white text-xs font-bold px-5 py-3 rounded-xl shadow-md transition-all hover:scale-[1.02] text-center inline-block">
-          Lihat Semua Guru
+          Lihat Semua Guru (<?php echo $total_guru; ?>)
         </a>
       </div>
 
       <!-- Right Columns of Cards -->
       <div class="lg:col-span-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
         
-        <!-- Card 1 -->
-        <div class="bg-[#EEF2F6] border border-slate-100 p-5 rounded-2xl flex flex-col justify-between hover:shadow-md transition-all h-[180px]">
-          <div>
-            <span class="font-extrabold text-slate-800 text-sm block">Bu Andika Sari</span>
-            <span class="text-[10px] text-slate-400 font-medium block mt-0.5">Wali Kelas X-A</span>
-          </div>
-          <div class="flex items-center gap-1 text-[10px] text-slate-600 font-bold mt-auto">
-            <span>⭐</span>
-            <span>4.9</span>
-          </div>
-        </div>
+        <?php
+        $fallback_guru = [
+            ['g_nama' => 'Bu Andika Sari', 'g_jabatan' => 'Wali Kelas X-A', 'g_picture' => ''],
+            ['g_nama' => 'Pak Budi Santoso', 'g_jabatan' => 'Wali Kelas XI-B', 'g_picture' => ''],
+            ['g_nama' => 'Bu Melani Putri', 'g_jabatan' => 'Wali Kelas XII-A', 'g_picture' => ''],
+            ['g_nama' => 'Pak Ridwan Hakim', 'g_jabatan' => 'Wali Kelas X-B', 'g_picture' => '']
+        ];
+        $bg_colors = ['bg-[#EEF2F6]', 'bg-[#EAF7F2]', 'bg-[#FEFBE8]', 'bg-[#FDF2F8]'];
+        
+        for ($i = 0; $i < 4; $i++) {
+            $g = $guru_list[$i] ?? $fallback_guru[$i];
+            $pic = !empty($g['g_picture']) ? $g['g_picture'] : 'assets/img/logo-ct.png';
+            $bg = $bg_colors[$i % 4];
+            ?>
+            <div class="<?php echo $bg; ?> border border-slate-100 p-5 rounded-2xl flex flex-col hover:shadow-md transition-all h-[200px]">
+              <div class="flex items-center gap-3 mb-3">
+                <img src="<?php echo htmlspecialchars($pic); ?>" class="w-10 h-10 rounded-full object-cover border border-white shadow-sm" onerror="this.src='assets/img/logo-ct.png'">
+                <div class="overflow-hidden">
+                  <span class="font-extrabold text-slate-800 text-xs sm:text-sm block truncate"><?php echo htmlspecialchars($g['g_nama']); ?></span>
+                  <span class="text-[9px] text-slate-400 font-medium block truncate mt-0.5"><?php echo htmlspecialchars($g['g_jabatan']); ?></span>
+                </div>
+              </div>
+              
+              <div class="text-[10px] text-slate-500 font-light leading-relaxed mt-1">
+                Mengelola absensi kelas dan koordinasi notifikasi orang tua secara berkala.
+              </div>
 
-        <!-- Card 2 -->
-        <div class="bg-[#EAF7F2] border border-slate-100 p-5 rounded-2xl flex flex-col justify-between hover:shadow-md transition-all h-[180px]">
-          <div>
-            <span class="font-extrabold text-slate-800 text-sm block">Pak Budi Santoso</span>
-            <span class="text-[10px] text-slate-400 font-medium block mt-0.5">Wali Kelas XI-B</span>
-          </div>
-          <div class="flex items-center gap-1 text-[10px] text-slate-600 font-bold mt-auto">
-            <span>⭐</span>
-            <span>4.8</span>
-          </div>
-        </div>
-
-        <!-- Card 3 -->
-        <div class="bg-[#FEFCE8] border border-slate-100 p-5 rounded-2xl flex flex-col justify-between hover:shadow-md transition-all h-[180px]">
-          <div>
-            <span class="font-extrabold text-slate-800 text-sm block">Bu Melani Putri</span>
-            <span class="text-[10px] text-slate-400 font-medium block mt-0.5">Wali Kelas XII-A</span>
-          </div>
-          <div class="flex items-center gap-1 text-[10px] text-slate-600 font-bold mt-auto">
-            <span>⭐</span>
-            <span>4.9</span>
-          </div>
-        </div>
-
-        <!-- Card 4 -->
-        <div class="bg-[#FDF2F8] border border-slate-100 p-5 rounded-2xl flex flex-col justify-between hover:shadow-md transition-all h-[180px]">
-          <div>
-            <span class="font-extrabold text-slate-800 text-sm block">Pak Ridwan Hakim</span>
-            <span class="text-[10px] text-slate-400 font-medium block mt-0.5">Wali Kelas X-B</span>
-          </div>
-          <div class="flex items-center gap-1 text-[10px] text-slate-600 font-bold mt-auto">
-            <span>⭐</span>
-            <span>4.7</span>
-          </div>
-        </div>
+              <div class="flex items-center gap-1 text-[10px] text-slate-600 font-bold mt-auto pt-2 border-t border-slate-100/50">
+                <span>⭐</span>
+                <span>4.<?php echo (9 - ($i % 3)); ?></span>
+              </div>
+            </div>
+            <?php
+        }
+        ?>
 
       </div>
 
@@ -688,7 +736,253 @@ if (isset($_SESSION['id'])) {
     </div>
   </footer>
 
+  <!-- Simulation Modal -->
+  <div id="sim-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] hidden items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-slate-100 overflow-hidden animate__animated animate__zoomIn">
+      <div class="bg-brand-primary text-white px-6 py-4 flex items-center justify-between">
+        <h5 class="font-extrabold text-sm tracking-tight flex items-center gap-2">
+          <i class="material-icons-round text-base">contactless</i> Simulasi Scanner RFID
+        </h5>
+        <button id="close-sim-btn" class="text-white/80 hover:text-white focus:outline-none">
+          <i class="material-icons-round text-base">close</i>
+        </button>
+      </div>
+      <div class="p-6">
+        <form id="sim-form" class="space-y-4">
+          <div>
+            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Pilih Anggota (Siswa / Guru)</label>
+            <select name="sim_uid" id="sim_uid" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-blue-500">
+              <option value="">-- Pilih Anggota --</option>
+              
+              <!-- PHP dynamic options for students -->
+              <optgroup label="Siswa Aktif">
+                <?php
+                $q_sim_siswa = mysqli_query($GLOBALS["___mysqli_ston"], "SELECT s_uid, s_nama, s_kelas FROM data_siswa WHERE s_status = 'Aktif' AND s_uid != '' LIMIT 15");
+                if ($q_sim_siswa) {
+                    while ($s_row = mysqli_fetch_assoc($q_sim_siswa)) {
+                        echo '<option value="' . htmlspecialchars($s_row['s_uid']) . '">' . htmlspecialchars($s_row['s_nama']) . ' (' . htmlspecialchars($s_row['s_kelas']) . ')</option>';
+                    }
+                }
+                ?>
+              </optgroup>
+              
+              <!-- PHP dynamic options for teachers -->
+              <optgroup label="Guru / Staff">
+                <?php
+                $q_sim_guru = mysqli_query($GLOBALS["___mysqli_ston"], "SELECT g_uid, g_nama, g_jabatan FROM data_guru WHERE g_uid != '' LIMIT 10");
+                if ($q_sim_guru) {
+                    while ($g_row = mysqli_fetch_assoc($q_sim_guru)) {
+                        echo '<option value="' . htmlspecialchars($g_row['g_uid']) . '">' . htmlspecialchars($g_row['g_nama']) . ' (' . htmlspecialchars($g_row['g_jabatan']) . ')</option>';
+                    }
+                }
+                ?>
+              </optgroup>
+            </select>
+          </div>
+          
+          <div>
+            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Pilih Lokasi Reader (Gate / Room)</label>
+            <select name="sim_dev_eui" id="sim_dev_eui" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-blue-500">
+              <?php
+              $q_sim_readers = mysqli_query($GLOBALS["___mysqli_ston"], "SELECT r_name, d_type, d_eui FROM reader_devices, room WHERE d_location=r_id");
+              $has_readers = false;
+              if ($q_sim_readers && mysqli_num_rows($q_sim_readers) > 0) {
+                  $has_readers = true;
+                  while ($r_row = mysqli_fetch_assoc($q_sim_readers)) {
+                      echo '<option value="' . htmlspecialchars($r_row['d_eui']) . '">' . htmlspecialchars($r_row['r_name']) . ' - ' . htmlspecialchars($r_row['d_type']) . '</option>';
+                  }
+              }
+              if (!$has_readers) {
+                  echo '<option value="GATE_01">Gate Utama (GATE_01)</option>';
+              }
+              ?>
+            </select>
+          </div>
+          
+          <button type="button" id="sim-submit-btn" class="w-full bg-[#0B2545] hover:bg-[#134074] text-white font-extrabold text-xs py-3.5 rounded-xl shadow-lg transition-all hover:scale-[1.02] flex items-center justify-center gap-2 mt-6">
+            <i class="material-icons-round text-base">fingerprint</i> Simulasikan Tap Kartu
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- jQuery CDN -->
+  <script src="https://code.jquery.com/jquery-3.6.3.min.js" crossorigin="anonymous"></script>
+
   <script>
+    let lastScanId = null;
+
+    // --- 1. Real-time Clock ---
+    function updateClock() {
+      const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+      const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+      
+      let now = new Date();
+      let dayName = days[now.getDay()];
+      let date = now.getDate();
+      let monthName = months[now.getMonth()];
+      let year = now.getFullYear();
+      let hours = String(now.getHours()).padStart(2, '0');
+      let minutes = String(now.getMinutes()).padStart(2, '0');
+      let seconds = String(now.getSeconds()).padStart(2, '0');
+      
+      $('#live-clock').text(`${dayName}, ${date} ${monthName} ${year} ${hours}:${minutes}:${seconds}`);
+    }
+    
+    // --- 2. Live attendance scan list ---
+    function loadHeroScans() {
+      $('#hero-last-scans').load('pages/dashboard/view/last_scan.php', function(response, status) {
+        if (status !== 'success') {
+          $('#hero-last-scans').html(`
+            <div class="text-center py-8 text-slate-400 text-xs">
+              <span class="material-icons-round text-lg opacity-30 block">hourglass_empty</span>
+              <span class="block mt-1">Belum ada tap hari ini.</span>
+            </div>
+          `);
+        }
+      });
+    }
+
+    // --- 3. Dynamic Stats Polling ---
+    function updateDynamicStats() {
+      $.getJSON('pages/dashboard/view/get_stats.php', function(data) {
+        if (data) {
+          let totalHadir = 0;
+          let totalIzin = 0;
+          let totalSakit = 0;
+          
+          if(data.siswa) {
+            data.siswa.forEach(function(item) {
+              totalHadir += parseInt(item.hadir || 0);
+              totalIzin += parseInt(item.izin || 0);
+              totalSakit += parseInt(item.sakit || 0);
+            });
+          }
+          
+          // Fallbacks to default database values if no today scans yet
+          let displayHadir = totalHadir > 0 ? totalHadir : <?php echo $today_hadir; ?>;
+          let displayIzin = (totalIzin + totalSakit) > 0 ? (totalIzin + totalSakit) : <?php echo ($today_izin + $today_sakit); ?>;
+          
+          $('#hero-absen-count').text(displayHadir + ' siswa');
+          $('#hero-stats-hadir').text(displayHadir);
+          $('#hero-stats-izin').text(displayIzin);
+        }
+      });
+    }
+
+    // --- 4. Detect New Tap for Beep and TTS ---
+    function checkNewTap() {
+      $.getJSON('pages/dashboard/view/last_scan.php?meta=1', function(data) {
+        if (data && data.id) {
+          if (lastScanId !== null && data.id !== lastScanId) {
+            // New tap registered!
+            playNotificationSound();
+            speakAttendance(data.who);
+            // Instantly refresh list and counters
+            loadHeroScans();
+            updateDynamicStats();
+          }
+          lastScanId = data.id;
+        }
+      });
+    }
+
+    function playNotificationSound() {
+      try {
+        let context = new (window.AudioContext || window.webkitAudioContext)();
+        let oscillator = context.createOscillator();
+        let gain = context.createGain();
+        oscillator.connect(gain);
+        gain.connect(context.destination);
+        oscillator.type = 'sine';
+        oscillator.frequency.value = 880; // High pitch A note
+        gain.gain.setValueAtTime(0.1, context.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, context.currentTime + 0.35);
+        oscillator.start(context.currentTime);
+        oscillator.stop(context.currentTime + 0.35);
+      } catch (e) {
+        console.error("Audio Context error:", e);
+      }
+    }
+
+    function speakAttendance(name) {
+      if ('speechSynthesis' in window) {
+        // Stop current speech to avoid stacking
+        window.speechSynthesis.cancel();
+        let utterance = new SpeechSynthesisUtterance(name);
+        utterance.lang = 'id-ID';
+        utterance.rate = 1.0;
+        window.speechSynthesis.speak(utterance);
+      }
+    }
+
+    // --- 5. Simulation Modal Controls ---
+    $(document).ready(function() {
+      updateClock();
+      setInterval(updateClock, 1000);
+      
+      loadHeroScans();
+      setInterval(loadHeroScans, 2000);
+      
+      updateDynamicStats();
+      setInterval(updateDynamicStats, 4000);
+      
+      // Init last scan ID for new tap listener
+      $.getJSON('pages/dashboard/view/last_scan.php?meta=1', function(data) {
+        if (data && data.id) {
+          lastScanId = data.id;
+        }
+      });
+      setInterval(checkNewTap, 1500);
+
+      // Modal open/close
+      $('#sim-tap-btn').click(function() {
+        $('#sim-modal').removeClass('hidden').addClass('flex');
+      });
+      
+      $('#close-sim-btn').click(function() {
+        $('#sim-modal').addClass('hidden').removeClass('flex');
+      });
+      
+      // Close modal on click outside content
+      $('#sim-modal').click(function(e) {
+        if (e.target === this) {
+          $(this).addClass('hidden').removeClass('flex');
+        }
+      });
+
+      // Handle Simulated Tap Submission
+      $('#sim-submit-btn').click(function() {
+        let uid = $('#sim_uid').val();
+        let dev_eui = $('#sim_dev_eui').val();
+        
+        if (!uid) {
+          alert('Pilih siswa atau guru terlebih dahulu.');
+          return;
+        }
+        
+        $('#sim-submit-btn').prop('disabled', true).html('<i class="material-icons-round text-base animate-spin">sync</i> Memproses...');
+        
+        $.ajax({
+          type: "GET",
+          url: 'webapi/api/create.php?uid=' + encodeURIComponent(uid) + '&dev_eui=' + encodeURIComponent(dev_eui),
+          success: function(response) {
+            $('#sim-modal').addClass('hidden').removeClass('flex');
+            $('#sim-submit-btn').prop('disabled', false).html('<i class="material-icons-round text-base">fingerprint</i> Simulasikan Tap Kartu');
+            
+            // Instantly refresh
+            loadHeroScans();
+            updateDynamicStats();
+          },
+          error: function() {
+            alert('Simulasi tap kartu gagal. Hubungi admin.');
+            $('#sim-submit-btn').prop('disabled', false).html('<i class="material-icons-round text-base">fingerprint</i> Simulasikan Tap Kartu');
+          }
+        });
+      });
+    });
+
     // PWA Install Logic
     let deferredPrompt;
     const installBtn = document.getElementById('install-pwa');
