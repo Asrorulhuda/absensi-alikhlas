@@ -301,14 +301,14 @@ $login_url_encoded = urlencode($login_url);
                 <span class="text-[10px] font-extrabold text-slate-850 block truncate leading-tight"><?php echo htmlspecialchars($u['name']); ?></span>
               </div>
               
-              <div class="grid grid-cols-2 gap-1 mt-1">
-                <div>
+              <div class="grid grid-cols-5 gap-1.5 items-start mt-0.5">
+                <div class="col-span-3">
                   <span class="text-[6px] text-slate-400 font-bold uppercase tracking-wider block">Username</span>
-                  <span class="text-[9px] font-bold text-slate-700 bg-slate-50 px-1 py-0.5 rounded border border-slate-100 block truncate tracking-wide leading-none select-all"><?php echo htmlspecialchars($u['username']); ?></span>
+                  <span class="text-[9px] font-bold text-slate-700 bg-slate-50 px-1 py-0.5 rounded border border-slate-100 block break-all tracking-wide leading-tight select-all"><?php echo htmlspecialchars($u['username']); ?></span>
                 </div>
-                <div>
+                <div class="col-span-2 text-right">
                   <span class="text-[6px] text-slate-400 font-bold uppercase tracking-wider block">Password</span>
-                  <span class="text-[9px] font-extrabold text-slate-800 block truncate leading-none select-all"><?php echo htmlspecialchars($pw_hint); ?></span>
+                  <span class="text-[9px] font-extrabold text-slate-800 block break-all leading-tight select-all"><?php echo htmlspecialchars($pw_hint); ?></span>
                 </div>
               </div>
               
@@ -404,17 +404,17 @@ $login_url_encoded = urlencode($login_url);
                 <div class="grid grid-cols-2 gap-1.5">
                   <div>
                     <span class="text-[8px] text-slate-400 font-bold uppercase tracking-wider block">Username</span>
-                    <span class="text-xs font-bold text-slate-700 bg-slate-50 px-2 py-1 rounded border border-slate-100 block truncate tracking-wide select-all"><?php echo htmlspecialchars($u['username']); ?></span>
+                    <span class="text-xs font-bold text-slate-700 bg-slate-50 px-2 py-1 rounded border border-slate-100 block break-all tracking-wide select-all"><?php echo htmlspecialchars($u['username']); ?></span>
                   </div>
                   <div>
                     <span class="text-[8px] text-slate-400 font-bold uppercase tracking-wider block">UID Kartu</span>
-                    <span class="text-xs font-mono font-bold text-slate-600 bg-slate-50 px-2 py-1 rounded border border-slate-100 block truncate select-all"><?php echo htmlspecialchars($uid); ?></span>
+                    <span class="text-xs font-mono font-bold text-slate-600 bg-slate-50 px-2 py-1 rounded border border-slate-100 block break-all select-all"><?php echo htmlspecialchars($uid); ?></span>
                   </div>
                 </div>
 
                 <div>
                   <span class="text-[8px] text-slate-400 font-bold uppercase tracking-wider block">Password</span>
-                  <span class="text-[10px] font-extrabold text-slate-800 tracking-wide select-all"><?php echo htmlspecialchars($pw_hint); ?></span>
+                  <span class="text-[10px] font-extrabold text-slate-800 tracking-wide select-all break-all"><?php echo htmlspecialchars($pw_hint); ?></span>
                 </div>
               </div>
 
