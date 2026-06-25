@@ -120,7 +120,7 @@ class Absensi{
 	
 	//1. Cek user - cek di data_siswa dulu
 		$tanggal_now = date("Y-m-d");
-		$sqlQuery = "SELECT * FROM ". $this->db_data_siswa ." WHERE s_uid = :uid LIMIT 0,1";
+		$sqlQuery = "SELECT * FROM ". $this->db_data_siswa ." WHERE s_uid = :uid AND s_status = 'Aktif' LIMIT 0,1";
 		$stmt = $this->conn->prepare($sqlQuery);
 		$stmt->bindParam(":uid", $this->uid);
 		$stmt->execute();

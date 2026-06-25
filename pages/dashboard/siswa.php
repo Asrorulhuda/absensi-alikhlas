@@ -106,6 +106,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                                     <button type="button" class="btn bg-gradient-success btn-sm mb-0 ms-2" data-bs-toggle="modal" data-bs-target="#importModal">
                                         <i class="material-icons text-sm">file_upload</i>&nbsp; Import
                                     </button>
+                                    <button type="button" class="btn bg-gradient-warning btn-sm mb-0 ms-2" onClick="location.href='siswa_promote'">
+                                        <i class="material-icons text-sm">auto_awesome</i>&nbsp; Kenaikan & Kelulusan
+                                    </button>
                                 </div>
                             </div>
 
