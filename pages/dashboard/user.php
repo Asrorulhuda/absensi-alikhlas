@@ -108,10 +108,21 @@
 					
 					-->
 					<div class="ms-auto my-auto mt-lg-0 mt-4">
-					    
 						<div class="ms-auto my-auto">
 						<a href="user_create" class="btn bg-gradient-primary btn-sm mb-0">+&nbsp; Add User</a>
 						
+						<div class="btn-group">
+							<button id="btnPrintGroup" type="button" class="btn bg-gradient-info btn-sm mb-0 dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+								<i class="material-icons text-sm">print</i>&nbsp; Cetak Akun
+							</button>
+							<ul class="dropdown-menu" aria-labelledby="btnPrintGroup">
+								<li><a class="dropdown-item" href="user_print?role=all" target="_blank">Semua Akun</a></li>
+								<li><a class="dropdown-item" href="user_print?role=Admin" target="_blank">Akun Admin</a></li>
+								<li><a class="dropdown-item" href="user_print?role=Guru" target="_blank">Akun Guru</a></li>
+								<li><a class="dropdown-item" href="user_print?role=User" target="_blank">Akun Siswa</a></li>
+							</ul>
+						</div>
+
 						<button class="btn btn-outline-primary btn-sm export mb-0 mt-sm-0 mt-1" data-type="csv" type="button" name="button">Export</button>
 						</div>
 					</div>
@@ -163,6 +174,7 @@
 											<?php
 											    echo "<a href='javascript:;' data-bs-toggle='modal' data-bs-target='#detailModal' data-id='". $d_user['id'] ."' id='getDetailUser'
 													     title='Detail User' data-toggle='tooltip'><span class='fa fa-eye'></span></a>&nbsp;&nbsp;";
+												echo "<a href='user_print?id=". $id64 ."' target='_blank' title='Cetak Kartu Login' data-toggle='tooltip'><span class='fa fa-print'></span></a>&nbsp;&nbsp;";
 												echo "<a href='user_update?id_user=". $id64 ."' title='Update Record' data-toggle='tooltip'><i class='far fa-edit'></i></a>&nbsp;&nbsp;";
 												echo "<a href='javascript:;' data-bs-toggle='modal' data-bs-target='#deleteModal' data-id='". $d_user['id'] ."' data-id_siswa='". $d_user['id_siswa'] ."' id='getDelUser'
 													     title='Delete User' data-toggle='tooltip'><span class='fa fa-trash'></span></a>";
