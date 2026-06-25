@@ -16,8 +16,12 @@ if (!isset($_SESSION['akses']) || $_SESSION['akses'] !== 'Admin') {
 
 require_once "include/db_config.php";
 
+// Check if exporting schema only (no data inserts)
+$schema_only = isset($_GET['schema_only']) && $_GET['schema_only'] == 1;
+
 // Set download headers
-$filename = 'mialikhl_absensi_' . date('Ymd_His') . '.sql';
+$suffix = $schema_only ? '_schema_' : '_';
+$filename = 'mialikhl_absensi' . $suffix . date('Ymd_His') . '.sql';
 header('Content-Type: application/octet-stream');
 header('Content-Disposition: attachment; filename="' . $filename . '"');
 
@@ -52,41 +56,43 @@ foreach ($tables as $table) {
         echo $row_schema[1] . ";\n\n";
     }
     
-    // Fetch data and generate Insert statements
-    $result_data = mysqli_query($link, 'SELECT * FROM `' . $table . '`');
-    if ($result_data) {
-        $num_fields = mysqli_num_fields($result_data);
-        $rows_count = mysqli_num_rows($result_data);
-        
-        if ($rows_count > 0) {
-            echo "INSERT INTO `" . $table . "` VALUES\n";
-            $i = 0;
-            while ($row_data = mysqli_fetch_row($result_data)) {
-                echo "(";
-                for ($j = 0; $j < $num_fields; $j++) {
-                    if (isset($row_data[$j])) {
-                        $val = mysqli_real_escape_string($link, $row_data[$j]);
-                        
-                        // Handle numeric vs string values
-                        if (preg_match('/^[0-9]+$/', $row_data[$j]) && !preg_match('/^0[0-9]+/', $row_data[$j]) && strlen($row_data[$j]) <= 10) {
-                            echo $val;
+    // Fetch data and generate Insert statements (skip if schema_only)
+    if (!$schema_only) {
+        $result_data = mysqli_query($link, 'SELECT * FROM `' . $table . '`');
+        if ($result_data) {
+            $num_fields = mysqli_num_fields($result_data);
+            $rows_count = mysqli_num_rows($result_data);
+            
+            if ($rows_count > 0) {
+                echo "INSERT INTO `" . $table . "` VALUES\n";
+                $i = 0;
+                while ($row_data = mysqli_fetch_row($result_data)) {
+                    echo "(";
+                    for ($j = 0; $j < $num_fields; $j++) {
+                        if (isset($row_data[$j])) {
+                            $val = mysqli_real_escape_string($link, $row_data[$j]);
+                            
+                            // Handle numeric vs string values
+                            if (preg_match('/^[0-9]+$/', $row_data[$j]) && !preg_match('/^0[0-9]+/', $row_data[$j]) && strlen($row_data[$j]) <= 10) {
+                                echo $val;
+                            } else {
+                                echo "'" . $val . "'";
+                            }
                         } else {
-                            echo "'" . $val . "'";
+                            echo "NULL";
                         }
-                    } else {
-                        echo "NULL";
+                        
+                        if ($j < ($num_fields - 1)) {
+                            echo ",";
+                        }
                     }
                     
-                    if ($j < ($num_fields - 1)) {
-                        echo ",";
+                    $i++;
+                    if ($i < $rows_count) {
+                        echo "),\n";
+                    } else {
+                        echo ");\n\n";
                     }
-                }
-                
-                $i++;
-                if ($i < $rows_count) {
-                    echo "),\n";
-                } else {
-                    echo ");\n\n";
                 }
             }
         }
