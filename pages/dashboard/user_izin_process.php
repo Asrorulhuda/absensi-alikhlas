@@ -8,6 +8,7 @@ if ($_SESSION['akses'] != 'User' && $_SESSION['akses'] != 'Admin') {
 }
 
 require_once "../../include/db_config.php";
+require_once "../../include/helpers.php";
 
 // Initialize PDO
 $database = new Database();
@@ -64,15 +65,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
         $siswa_nama = "Siswa";
         $siswa_kelas = "-";
+        $siswa_uid = "";
         
         if ($user_data && !empty($user_data['id_siswa'])) {
             // Assuming id_siswa links to s_id in data_siswa
-            $stmt_siswa = $pdo->prepare("SELECT s_nama, s_kelas FROM data_siswa WHERE s_id = ?");
+            $stmt_siswa = $pdo->prepare("SELECT s_nama, s_kelas, s_uid FROM data_siswa WHERE s_id = ?");
             $stmt_siswa->execute([$user_data['id_siswa']]);
             $siswa_data = $stmt_siswa->fetch(PDO::FETCH_ASSOC);
             if ($siswa_data) {
                 $siswa_nama = $siswa_data['s_nama'];
                 $siswa_kelas = $siswa_data['s_kelas'];
+                $siswa_uid = $siswa_data['s_uid'];
             }
         }
 
@@ -109,34 +112,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                      $message .= "\n\n(Bukti foto terlampir di sistem)";
                 }
                 
-                // Send via cURL
-                $curl = curl_init();
-                curl_setopt_array($curl, array(
-                    CURLOPT_URL => 'https://gateway.asr-desain.my.id/send-message',
-                    CURLOPT_RETURNTRANSFER => true,
-                    CURLOPT_ENCODING => '',
-                    CURLOPT_MAXREDIRS => 10,
-                    CURLOPT_TIMEOUT => 5,
-                    CURLOPT_FOLLOWLOCATION => true,
-                    CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-                    CURLOPT_CUSTOMREQUEST => 'POST',
-                    CURLOPT_POSTFIELDS => array(
-                        'api_key' =>  $wa_conf['cnfg_token'],
-                        'sender' =>  $wa_conf['cnfg_sender'],
-                        'number' =>  $target_number,
-                        'message' =>  $message,
-                    ),
-                ));
-                
-                $response = curl_exec($curl);
-                // curl_close($curl); // Deprecated in PHP 8.0+ as CurlHandle is auto-closed
-                
-                // Log to wa_logs
-                try {
-                    $stmt_log = $pdo->prepare("INSERT INTO wa_logs (created_at, siswa_nama, kelas, tipe, target, phone, status, message, response) VALUES (NOW(), ?, ?, ?, ?, ?, ?, ?, ?)");
-                    $stmt_log->execute([$siswa_nama, $siswa_kelas, 'IZIN_SISWA', 'KEPSEK', $target_number, 'Sent', $message, $response]);
-                } catch (Exception $e) {
-                    // Ignore log error
+                // Masukkan ke antrean WhatsApp (Queue)
+                if (!empty($target_number)) {
+                    $meta = [
+                        'siswa_uid'  => $siswa_uid,
+                        'siswa_nama' => $siswa_nama,
+                        'kelas'      => $siswa_kelas,
+                        'tipe'       => 'IZIN_SISWA',
+                        'target'     => 'KEPSEK',
+                    ];
+                    enqueue_wa($target_number, $message, $meta);
                 }
             }
         }

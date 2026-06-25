@@ -4,6 +4,7 @@ header("Content-Type: application/json; charset=UTF-8");
 
 date_default_timezone_set('Asia/Jakarta');
 include_once '../../include/db_config.php';
+include_once '../../include/helpers.php';
 include_once '../class/absensi.php';
 
 // ============================================================
@@ -151,44 +152,21 @@ if ($item->createData()) {
                 $template_message
             );
 
-            // --- Anti-Banned Strategy ---
-            // 1. Flush output agar RFID reader tidak menunggu delay
-            if (function_exists('fastcgi_finish_request')) {
-                fastcgi_finish_request();
-            } else {
-                ob_flush();
-                flush();
-            }
-
-            // 2. Random delay 1-3 detik untuk menghindari spam burst
-            sleep(rand(1, 3));
-
             // 3. Unique footer untuk menghindari duplikat pesan
             $ref_id      = substr(str_shuffle("0123456789abcdefghijklmnopqrstuvwxyz"), 0, 5);
             $wa_message .= "\n\nRef: " . $ref_id . " | " . date('d-m-Y H:i:s');
             // ----------------------------
 
-            // Jangan kirim jika nomor tujuan kosong
+            // Masukkan ke antrean WhatsApp (Queue)
             if (!empty($kontak_tujuan)) {
-                $curl = curl_init();
-                curl_setopt_array($curl, array(
-                    CURLOPT_URL            => 'https://gateway.asr-desain.my.id/send-message',
-                    CURLOPT_RETURNTRANSFER => true,
-                    CURLOPT_ENCODING       => '',
-                    CURLOPT_MAXREDIRS      => 10,
-                    CURLOPT_TIMEOUT        => 5,
-                    CURLOPT_FOLLOWLOCATION => true,
-                    CURLOPT_HTTP_VERSION   => CURL_HTTP_VERSION_1_1,
-                    CURLOPT_CUSTOMREQUEST  => 'POST',
-                    CURLOPT_POSTFIELDS     => array(
-                        'api_key' => $cnfg_token,
-                        'sender'  => $cnfg_sender,
-                        'number'  => $kontak_tujuan,
-                        'message' => $wa_message,
-                    )
-                ));
-                $response = curl_exec($curl);
-                curl_close($curl);
+                $meta = [
+                    'siswa_uid'  => $item->uid,
+                    'siswa_nama' => $nama,
+                    'kelas'      => $is_guru ? 'GURU' : (isset($item->s_kelas) ? $item->s_kelas : ''),
+                    'tipe'       => $is_guru ? 'KBM_GURU' : (isset($item->attendance_type) ? $item->attendance_type : 'KBM'),
+                    'target'     => $is_guru ? 'GURU' : 'WALI_MURID',
+                ];
+                enqueue_wa($kontak_tujuan, $wa_message, $meta);
             }
         }
     }

@@ -7,6 +7,7 @@
 	$id_siswa = $_SESSION['id_siswa'];
     
 	require_once "../../include/db_config.php";
+	require_once "../../include/helpers.php";
 	include "control/confignusers_data.php";
 	
 	$bulan_indo = array(
@@ -124,39 +125,15 @@
 								[$urow['s_nama'],$urow['s_kelas'],date('d-m-Y'),$alasan,$act,$t['nama']],
 								$msgTpl
 							) : $msgBase;
-							$curl = curl_init();
-							curl_setopt_array($curl, array(
-							  CURLOPT_URL => 'https://gateway.asr-desain.my.id/send-message',
-							  CURLOPT_RETURNTRANSFER => true,
-							  CURLOPT_ENCODING => '',
-							  CURLOPT_MAXREDIRS => 10,
-							  CURLOPT_TIMEOUT => 6,
-							  CURLOPT_FOLLOWLOCATION => true,
-							  CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-							  CURLOPT_CUSTOMREQUEST => 'POST',
-							  CURLOPT_POSTFIELDS => array(
-							    'api_key' =>  $cnfg_token,
-							    'sender'  =>  $cnfg_sender,
- 							    'number'  =>  $t['phone'],
-							    'message' =>  $msg
-							  ),
-							));
-							$response = curl_exec($curl);
-							$httpcode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-							curl_close($curl);
-							$ins = "INSERT INTO wa_logs (siswa_uid,siswa_nama,kelas,tipe,target,guru_nama,phone,status,response,message) VALUES (
-								'".mysqli_real_escape_string($GLOBALS["___mysqli_ston"], $urow['s_uid'])."',
-								'".mysqli_real_escape_string($GLOBALS["___mysqli_ston"], $urow['s_nama'])."',
-								'".mysqli_real_escape_string($GLOBALS["___mysqli_ston"], $urow['s_kelas'])."',
-								'".mysqli_real_escape_string($GLOBALS["___mysqli_ston"], $act)."',
-								'guru_wali',
-								'".mysqli_real_escape_string($GLOBALS["___mysqli_ston"], $t['nama'])."',
-								'".mysqli_real_escape_string($GLOBALS["___mysqli_ston"], $t['phone'])."',
-								'".(($httpcode>=200 && $httpcode<300) ? 'SENT' : 'FAILED')."',
-								'".mysqli_real_escape_string($GLOBALS["___mysqli_ston"], strval($response))."',
-								'".mysqli_real_escape_string($GLOBALS["___mysqli_ston"], $msg)."'
-							)";
-							mysqli_query($GLOBALS["___mysqli_ston"], $ins);
+							$meta = [
+								'siswa_uid'  => $urow['s_uid'],
+								'siswa_nama' => $urow['s_nama'],
+								'kelas'      => $urow['s_kelas'],
+								'tipe'       => $act,
+								'target'     => 'guru_wali',
+								'guru_nama'  => $t['nama'],
+							];
+							enqueue_wa($t['phone'], $msg, $meta);
 						}
 					}else if($kontak_wali != ''){
 						$msgTpl = ($act==='SAKIT') ? $tpl_sakit : $tpl_izin;
@@ -166,39 +143,15 @@
 							[$urow['s_nama'],$urow['s_kelas'],date('d-m-Y'),$alasan,$act,$nama_wali],
 							$msgTpl
 						) : $msgBase;
-						$curl = curl_init();
-						curl_setopt_array($curl, array(
-						  CURLOPT_URL => 'https://gateway.asr-desain.my.id/send-message',
-						  CURLOPT_RETURNTRANSFER => true,
-						  CURLOPT_ENCODING => '',
-						  CURLOPT_MAXREDIRS => 10,
-						  CURLOPT_TIMEOUT => 6,
-						  CURLOPT_FOLLOWLOCATION => true,
-						  CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-						  CURLOPT_CUSTOMREQUEST => 'POST',
-						  CURLOPT_POSTFIELDS => array(
-						    'api_key' =>  $cnfg_token,
-						    'sender'  =>  $cnfg_sender,
-						    'number'  =>  $kontak_wali,
-						    'message' =>  $msg
-						  ),
-						));
-						$response = curl_exec($curl);
-						$httpcode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-						curl_close($curl);
-						$ins = "INSERT INTO wa_logs (siswa_uid,siswa_nama,kelas,tipe,target,guru_nama,phone,status,response,message) VALUES (
-							'".mysqli_real_escape_string($GLOBALS["___mysqli_ston"], $urow['s_uid'])."',
-							'".mysqli_real_escape_string($GLOBALS["___mysqli_ston"], $urow['s_nama'])."',
-							'".mysqli_real_escape_string($GLOBALS["___mysqli_ston"], $urow['s_kelas'])."',
-							'".mysqli_real_escape_string($GLOBALS["___mysqli_ston"], $act)."',
-							'wali_murid',
-							'".mysqli_real_escape_string($GLOBALS["___mysqli_ston"], $nama_wali)."',
-							'".mysqli_real_escape_string($GLOBALS["___mysqli_ston"], $kontak_wali)."',
-							'".(($httpcode>=200 && $httpcode<300) ? 'SENT' : 'FAILED')."',
-							'".mysqli_real_escape_string($GLOBALS["___mysqli_ston"], strval($response))."',
-							'".mysqli_real_escape_string($GLOBALS["___mysqli_ston"], $msg)."'
-						)";
-						mysqli_query($GLOBALS["___mysqli_ston"], $ins);
+						$meta = [
+							'siswa_uid'  => $urow['s_uid'],
+							'siswa_nama' => $urow['s_nama'],
+							'kelas'      => $urow['s_kelas'],
+							'tipe'       => $act,
+							'target'     => 'wali_murid',
+							'guru_nama'  => $nama_wali,
+						];
+						enqueue_wa($kontak_wali, $msg, $meta);
 					}else{
 						$ins = "INSERT INTO wa_logs (siswa_uid,siswa_nama,kelas,tipe,target,guru_nama,phone,status,response,message) VALUES (
 							'".mysqli_real_escape_string($GLOBALS["___mysqli_ston"], $urow['s_uid'])."',

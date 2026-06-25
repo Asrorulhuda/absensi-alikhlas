@@ -8,6 +8,7 @@ if ($_SESSION['akses'] != 'Guru') {
 }
 
 require_once "../../include/db_config.php";
+require_once "../../include/helpers.php";
 
 // Initialize PDO
 $database = new Database();
@@ -65,14 +66,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
         $guru_nama = "Guru";
         $guru_jabatan = "Guru";
+        $guru_uid = "";
         
         if ($user_data && !empty($user_data['id_guru'])) {
-            $stmt_guru = $pdo->prepare("SELECT g_nama, g_jabatan FROM data_guru WHERE g_id = ?");
+            $stmt_guru = $pdo->prepare("SELECT g_nama, g_jabatan, g_uid FROM data_guru WHERE g_id = ?");
             $stmt_guru->execute([$user_data['id_guru']]);
             $guru_data = $stmt_guru->fetch(PDO::FETCH_ASSOC);
             if ($guru_data) {
                 $guru_nama = $guru_data['g_nama'];
                 $guru_jabatan = $guru_data['g_jabatan'];
+                $guru_uid = $guru_data['g_uid'];
             }
         }
 
@@ -99,35 +102,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                  $message .= "\n\n(Bukti foto terlampir di sistem)";
             }
 
-            // Send via cURL
-            $curl = curl_init();
-            curl_setopt_array($curl, array(
-                CURLOPT_URL => 'https://gateway.asr-desain.my.id/send-message',
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_ENCODING => '',
-                CURLOPT_MAXREDIRS => 10,
-                CURLOPT_TIMEOUT => 5,
-                CURLOPT_FOLLOWLOCATION => true,
-                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-                CURLOPT_CUSTOMREQUEST => 'POST',
-                CURLOPT_POSTFIELDS => array(
-                    'api_key' =>  $wa_conf['cnfg_token'],
-                    'sender' =>  $wa_conf['cnfg_sender'],
-                    'number' =>  $target_number,
-                    'message' =>  $message,
-                ),
-            ));
-            
-            $response = curl_exec($curl);
-            curl_close($curl);
-            
-            // Optional: Log to wa_logs (using mysqli global connection as existing logs use it, or PDO)
-            // Using PDO for consistency in this file
-            try {
-                $stmt_log = $pdo->prepare("INSERT INTO wa_logs (created_at, siswa_nama, kelas, tipe, target, phone, status, message, response) VALUES (NOW(), ?, ?, ?, ?, ?, ?, ?, ?)");
-                $stmt_log->execute([$guru_nama, 'GURU', 'IZIN_GURU', 'KEPSEK', $target_number, 'Sent', $message, $response]);
-            } catch (Exception $e) {
-                // Ignore log error
+            // Masukkan ke antrean WhatsApp (Queue)
+            if (!empty($target_number)) {
+                $meta = [
+                    'siswa_uid'  => $guru_uid,
+                    'siswa_nama' => $guru_nama,
+                    'kelas'      => 'GURU',
+                    'tipe'       => 'IZIN_GURU',
+                    'target'     => 'KEPSEK',
+                    'guru_nama'  => $guru_nama,
+                ];
+                enqueue_wa($target_number, $message, $meta);
             }
         }
         
