@@ -1,8 +1,4 @@
 <?php
-//header('Location: apps'); /* Redirect browser */
-
-/* Make sure that code below does not get executed when we redirect. */
-//exit;
 session_start();
 require_once "include/db_config.php";
 
@@ -48,20 +44,18 @@ if (!isset($_SESSION['id']) && isset($_COOKIE['remember_me'])) {
 }
 // --------------------------------------------
 
-$sql = "SELECT * FROM system_config WHERE id =1";
-
-$system_conf = mysqli_query($GLOBALS["___mysqli_ston"],$sql);
+$sql = "SELECT * FROM system_config WHERE id = 1";
+$system_conf = mysqli_query($GLOBALS["___mysqli_ston"], $sql);
 $row = mysqli_fetch_array($system_conf);
-	$nama_perusahaan = $row["company"];
-	$title_bar = $row["title_bar"];
-	$icon_bar = $row["icon_bar"];
-	$icon_dashboard = $row["icon_dashboard"];
-	$sign_in_bg = $row["sign_in_bg"];
 
-
+$nama_perusahaan = $row["company"] ?? "Nama Perusahaan";
+$title_bar = $row["title_bar"] ?? "Sistem Absensi Digital";
+$icon_bar = $row["icon_bar"] ?? "";
+$landing_bg_color1 = $row["landing_bg_color1"] ?? '#4f46e5'; // Indigo-600
+$landing_bg_color2 = $row["landing_bg_color2"] ?? '#7c3aed'; // Violet-600
 
 if(isset($_POST["username"]) && !empty($_POST["username"])){
-	$username = $_POST["username"]; // No need to escape for prepared stmt
+	$username = $_POST["username"];
 	$raw_password = $_POST["password"];
 	$md5_password = md5($raw_password);
 	
@@ -89,7 +83,6 @@ if(isset($_POST["username"]) && !empty($_POST["username"])){
                 $new_hash = password_hash($raw_password, PASSWORD_BCRYPT);
                 $uid = $listdata_users['id'];
                 
-                // Use prepared statement for update too
                 $stmt_update = mysqli_prepare($GLOBALS["___mysqli_ston"], "UPDATE users SET password=? WHERE id=?");
                 if ($stmt_update) {
                     mysqli_stmt_bind_param($stmt_update, "si", $new_hash, $uid);
@@ -100,7 +93,6 @@ if(isset($_POST["username"]) && !empty($_POST["username"])){
         }
         mysqli_stmt_close($stmt);
     } else {
-        // Handle prepare error if needed, or just fail login
         $login_success = false;
     }
 
@@ -114,67 +106,89 @@ if(isset($_POST["username"]) && !empty($_POST["username"])){
         // --- SET REMEMBER ME COOKIE (90 DAYS) ---
         $token = bin2hex(random_bytes(32));
         $uid = $listdata_users['id'];
-        // Update token in DB
         $update_token_sql = "UPDATE users SET remember_token='$token' WHERE id='$uid'";
         mysqli_query($GLOBALS["___mysqli_ston"], $update_token_sql);
-        // Set Cookie (HttpOnly, Secure if HTTPS)
+        
         $secure_cookie = false; // Set to true if HTTPS is enabled
         setcookie('remember_me', $uid . ':' . $token, time() + (86400 * 90), "/", "", $secure_cookie, true);
-        // ----------------------------------------
         
         if ($_SESSION['akses'] == 'Guru') {
              header('location:pages/dashboard/dashboard_guru.php');
              exit();
         }
 		header('Location: pages/dashboard/');
-		//if ($_SESSION['akses'] == 'Admin'){ header('Location: pages/dashboard/');}
-		//if ($_SESSION['akses'] == 'User'){ //header('Location: pages/user/');}
-    }else{
-	    //echo '<script language="javascript" type="text/javascript"> alert("Error login. Invalid username or password");</script>';
-		//exit();
+        exit();
+    } else {
         header('location:login.php?msg='.base64_encode('nok'));		
+        exit();
 	}	
 }
-
 ?>
-<!--
-=========================================================
-* Material Dashboard 2 - v3.0.4
-=========================================================
-
-* Product Page: https://www.creative-tim.com/product/material-dashboard
-* Copyright 2022 Creative Tim (https://www.creative-tim.com)
-* Licensed under MIT (https://www.creative-tim.com/license)
-* Coded by Creative Tim
-
-=========================================================
-
-* The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
--->
-
 <!DOCTYPE html>
-<html lang="en">
-
+<html lang="id">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
   <link rel="apple-touch-icon" sizes="76x76" href="assets/img/apple-icon.png">
-  <link rel="icon" type="image/png" href="assets/img/system_data/favicon.ico">
+  <link rel="icon" type="image/png" href="assets/img/system_data/<?php echo !empty($icon_bar) ? $icon_bar : 'favicon.ico'; ?>">
   
-  <!-- PWA Manifest & Meta -->
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#e91e63">
+  <meta name="theme-color" content="<?php echo $landing_bg_color1; ?>">
   
-  <title><?php echo $title_bar; ?> </title>
-  <!--     Fonts and icons     -->
-  <link href="assets/css/Roboto.css" rel="stylesheet" type="text/css" />
-  <!-- Nucleo Icons -->
-  <link href="assets/css/nucleo-icons.css" rel="stylesheet" />
-  <link href="assets/css/nucleo-svg.css" rel="stylesheet" />
-  <!-- Font Awesome Icons -->
-  <script src="assets/js/kit.fontawesome.com_42d5adcbca.js" crossorigin="anonymous"></script>
-  <!-- Material Icons -->
-  <link href="assets/css/Material_icon.css" rel="stylesheet">
+  <title>Masuk — <?php echo $title_bar; ?></title>
+  
+  <!-- Fonts & Material Icons -->
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://kit.fontawesome.com/42d5adcbca.js" crossorigin="anonymous"></script>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+  <link href="assets/css/animate.min.css" rel="stylesheet" />
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Plus Jakarta Sans', 'Inter', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  
+  <style>
+    body {
+        font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+        overflow: hidden;
+    }
+    
+    .hero-bg {
+        background: linear-gradient(135deg, <?php echo $landing_bg_color1; ?> 0%, <?php echo $landing_bg_color2; ?> 100%);
+    }
+
+    /* Glassmorphism Utilities */
+    .glass-panel {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .glass-card {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
+    }
+
+    .blob {
+        position: absolute;
+        filter: blur(60px);
+        z-index: 0;
+        opacity: 0.5;
+    }
+  </style>
   
   <script>
     if ('serviceWorker' in navigator) {
@@ -187,202 +201,132 @@ if(isset($_POST["username"]) && !empty($_POST["username"])){
       });
     }
   </script>
-
-  <!-- CSS Files -->
-  <link id="pagestyle" href="assets/css/material-dashboard.css?v=3.0.4" rel="stylesheet" />
-  <link href="assets/css/animate.min.css" rel="stylesheet" />
-  <style>
-    body {
-        overflow: hidden; /* Prevent scrollbars for the background */
-        font-family: 'Roboto', sans-serif;
-    }
-    
-    /* Modern Animated Gradient Background */
-    .bg-modern {
-        background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
-        background-size: 400% 400%;
-        animation: gradient 15s ease infinite;
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        z-index: -1;
-    }
-
-    @keyframes gradient {
-        0% { background-position: 0% 50%; }
-        50% { background-position: 100% 50%; }
-        100% { background-position: 0% 50%; }
-    }
-
-    /* Glassmorphism Card */
-    .card-glass {
-        background: rgba(255, 255, 255, 0.25);
-        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
-        backdrop-filter: blur(14px);
-        -webkit-backdrop-filter: blur(14px);
-        border-radius: 20px;
-        border: 1px solid rgba(255, 255, 255, 0.18);
-    }
-    
-    .text-shadow {
-        text-shadow: 0 2px 4px rgba(0,0,0,0.2);
-    }
-    
-    .btn-glass {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        border: none;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-        transition: transform 0.2s, box-shadow 0.2s;
-    }
-    
-    .btn-glass:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(0,0,0,0.3);
-    }
-
-    .input-group-outline.is-focused .form-label, 
-    .input-group-outline.is-filled .form-label {
-        color: #fff !important; /* Make label white when active */
-        text-shadow: 0 1px 2px rgba(0,0,0,0.5);
-    }
-    
-    .input-group.input-group-outline .form-control {
-        color: #fff !important; /* White text input */
-        border-color: rgba(255,255,255,0.5) !important;
-    }
-    
-    .input-group.input-group-outline.is-focused .form-control {
-        border-color: #fff !important;
-        box-shadow: inset 0 0 0 1px #fff !important;
-    }
-    
-    .form-check-input:checked {
-        background-color: #23d5ab;
-        border-color: #23d5ab;
-    }
-  </style>
 </head>
 
-<body class="">
-  <div class="bg-modern"></div>
+<body class="hero-bg min-h-screen flex items-center justify-center p-6 relative select-none">
   
-  <main class="main-content  mt-0">
-    <div class="page-header align-items-start min-vh-100">
-      <div class="container my-auto">
-        <div class="row">
-          <div class="col-lg-4 col-md-8 col-12 mx-auto">
-            <div class="card card-glass z-index-0 fadeIn3 fadeInBottom animate__animated animate__fadeInUp">
-              <div class="card-header p-0 position-relative mt-n4 mx-3 z-index-2">
-                <div class="bg-gradient-primary shadow-primary border-radius-lg py-3 pe-1" style="background: linear-gradient(195deg, #42424a 0%, #191919 100%);">
-                  <div class="text-center mb-2">
-                      <a href="index.php" class="text-white text-xs opacity-7"><i class="fas fa-arrow-left"></i> Kembali ke Beranda</a>
-                  </div>
-                  <h4 class="text-white font-weight-bolder text-center mt-2 mb-0">Sign in</h4>
-                  <div class="row mt-3">
-				    <h4 class="text-white font-weight-bolder text-center mt-2 mb-0"><?php echo $title_bar; ?></h4>
-                  </div>
-                </div>
-              </div>
-              <div class="card-body">
-                <form role="form" class="text-start" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="post">
-                  <div class="input-group input-group-outline mb-3">
-                    <label class="form-label text-white">Username</label>
-                    <input type="text" class="form-control text-white" id="username" name="username" required >
-                  </div>
-                  <div class="input-group input-group-outline mb-3">
-                    <label class="form-label text-white">Password</label>
-                    <input type="password" class="form-control text-white" id="password" name="password" required>
-                  </div>
-                  <div class="form-check form-switch d-flex align-items-center mb-3">
-                    <input class="form-check-input" type="checkbox" id="rememberMe" name="rememberMe">
-                    <label class="form-check-label mb-0 ms-3 text-white" for="rememberMe">Remember me</label>
-                  </div>
-                  <div class="text-center">
-					<input type="submit" class="btn btn-glass w-100 my-4 mb-2 text-white font-weight-bold" value="Sign in"> 
-									
-                  </div>
-                  <div class="text-center">
-                    <a href="pages/dashboard/scan2.php" 
-                       class="btn btn-glass w-100 my-4 mb-2 text-white font-weight-bold" style="background: linear-gradient(135deg, #ff9966 0%, #ff5e62 100%);">
-                        <i class="material-icons opacity-10">qr_code_scanner</i> Scan Presensi
-                    </a>
-                  </div>
-                   <div class="text-center">
-                    <a href="registrasi_kartu.php" 
-                       class="btn btn-outline-white w-100 mb-2 text-white" style="border: 1px solid rgba(255,255,255,0.5);">
-                        Registrasi Kartu Baru
-                    </a>
-                  </div>
-                </form>
-              </div>
-            </div>
-          </div>
+  <!-- Soft Blurry Blobs -->
+  <div class="blob bg-purple-500 w-80 h-80 rounded-full top-10 left-10"></div>
+  <div class="blob bg-blue-400 w-80 h-80 rounded-full bottom-10 right-10"></div>
+  
+  <!-- Main Glassmorphic Login Card -->
+  <div class="glass-card w-full max-w-md rounded-3xl p-8 relative z-10 animate__animated animate__fadeInUp">
+    
+    <!-- Card Header -->
+    <div class="text-center mb-8">
+      <a href="index.php" class="inline-flex items-center gap-2 text-white/80 hover:text-white text-xs font-semibold mb-6 transition-colors">
+        <i class="fas fa-arrow-left"></i> Kembali ke Beranda
+      </a>
+      
+      <div class="flex justify-center mb-4">
+        <img src="assets/img/arducoding_corp.png" class="max-w-[70px] drop-shadow-xl animate__animated animate__pulse animate__infinite" alt="Logo" onerror="this.src='assets/img/logo-ct.png'">
+      </div>
+      
+      <h3 class="text-2xl font-extrabold tracking-tight text-white mb-1"><?php echo $nama_perusahaan; ?></h3>
+      <p class="text-xs text-indigo-100/70 font-light">Masuk ke Sistem Absensi Digital</p>
+    </div>
+    
+    <!-- Login Form -->
+    <form action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="post" class="space-y-5">
+      
+      <!-- Username Field -->
+      <div>
+        <label class="block text-[10px] font-bold text-indigo-100 uppercase tracking-wider mb-2" for="username">Username</label>
+        <div class="relative">
+          <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-white/50">
+            <i class="material-icons-round text-sm">person</i>
+          </span>
+          <input type="text" id="username" name="username" required placeholder="Masukkan username"
+                 class="w-full bg-white/10 border border-white/20 rounded-xl py-3.5 pl-11 pr-4 text-sm font-semibold text-white placeholder-white/40 focus:outline-none focus:border-white focus:bg-white/20 transition-all">
         </div>
       </div>
+      
+      <!-- Password Field -->
+      <div>
+        <label class="block text-[10px] font-bold text-indigo-100 uppercase tracking-wider mb-2" for="password">Password</label>
+        <div class="relative">
+          <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-white/50">
+            <i class="material-icons-round text-sm">lock</i>
+          </span>
+          <input type="password" id="password" name="password" required placeholder="••••••••"
+                 class="w-full bg-white/10 border border-white/20 rounded-xl py-3.5 pl-11 pr-4 text-sm font-semibold text-white placeholder-white/40 focus:outline-none focus:border-white focus:bg-white/20 transition-all">
+        </div>
+      </div>
+      
+      <!-- Remember Me Switch -->
+      <div class="flex items-center justify-between">
+        <label class="flex items-center gap-3 cursor-pointer select-none">
+          <input class="w-4 h-4 rounded border-white/20 bg-white/10 text-blue-600 focus:ring-0 focus:ring-offset-0 cursor-pointer" type="checkbox" id="rememberMe" name="rememberMe">
+          <span class="text-xs text-indigo-100/90 font-medium">Ingat Saya</span>
+        </label>
+      </div>
+      
+      <!-- Submit Button -->
+      <div class="pt-2">
+        <button type="submit" class="w-full bg-white hover:bg-indigo-50 text-indigo-900 font-extrabold text-sm py-4 rounded-xl shadow-lg transition-all hover:scale-[1.02] flex items-center justify-center gap-2">
+          Masuk Sekarang
+        </button>
+      </div>
+
+      <!-- Accent Divider -->
+      <div class="relative flex py-2 items-center">
+        <div class="flex-grow border-t border-white/10"></div>
+        <span class="flex-shrink mx-4 text-[9px] font-bold text-indigo-100/40 uppercase tracking-wider">Akses Cepat</span>
+        <div class="flex-grow border-t border-white/10"></div>
+      </div>
+      
+      <!-- Scan QR / RFID Monitor link -->
+      <div>
+        <a href="pages/dashboard/scan2.php" 
+           class="w-full glass-panel hover:bg-white/20 text-white font-bold text-xs py-3.5 rounded-xl transition-all flex items-center justify-center gap-2">
+          <i class="material-icons-round text-base">qr_code_scanner</i> Buka Scan Presensi
+        </a>
+      </div>
+
+      <!-- Card Registration link -->
+      <div>
+        <a href="registrasi_kartu.php" 
+           class="w-full border border-white/10 hover:border-white/30 text-white/80 hover:text-white font-semibold text-[11px] py-3 rounded-xl transition-all flex items-center justify-center gap-2">
+          Registrasi Kartu Baru
+        </a>
+      </div>
+      
+    </form>
+  </div>
+
+  <!-- Custom Error Modal (Tailwind, animated) -->
+  <div id="error-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] <?php echo (isset($_GET['msg']) && base64_decode($_GET['msg']) == 'nok') ? 'flex' : 'hidden'; ?> items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-sm w-full shadow-2xl border border-slate-100 overflow-hidden animate__animated animate__zoomIn">
+      <div class="p-6 text-center">
+        <div class="w-16 h-16 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center mx-auto mb-4 text-3xl">
+          <i class="material-icons-round">error_outline</i>
+        </div>
+        <h4 class="text-lg font-extrabold text-slate-800 mb-2">Login Gagal!</h4>
+        <p class="text-xs text-slate-500 leading-relaxed mb-6">Username atau password yang Anda masukkan tidak sesuai. Silakan coba kembali.</p>
+        <button id="close-error-btn" class="w-full bg-[#0B2545] hover:bg-[#134074] text-white font-extrabold text-xs py-3.5 rounded-xl transition-all shadow-md">
+          OK, Mengerti
+        </button>
+      </div>
     </div>
-	
-	<!-- Modal -->
-	<div class="modal fade" id="fail_signin" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
-	  <div class="modal-dialog modal-dialog-centered" role="document">
-		<div class="modal-content card-glass">
-		  <div class="modal-header border-0">
-			<h5 class="modal-title font-weight-normal text-white" id="exampleModalLabel">Sign-in Failed!</h5>
-			<button type="button" class="btn-close text-dark" data-bs-dismiss="modal" aria-label="Close">
-			  <span aria-hidden="true">&times;</span>
-			</button>
-		  </div>
-		  <div class="modal-body">
-			<div class="d-flex justify-content-center text-center">
-			   <p style="font-size:20px;" class="text-white">The username or password you entered does not match. Please try again!</p><br>
-			 </div>
-		  </div>
-		  <div class="modal-footer justify-content-center border-0">
-			<button type="button" class="btn btn-glass text-white" data-bs-dismiss="modal">OK</button>
-		  </div>
-		</div>
-	  </div>
-	</div>
-	
-	
-  </main>
+  </div>
 
-
-  <script src="assets/js/jquery-3.6.3.min.js"></script>
-  <!--   Core JS Files  
-  <script src="assets/js/plugins/jquery.min.js"></script>  -->
-  <script src="assets/js/core/popper.min.js"></script>
-  <script src="assets/js/core/bootstrap.min.js"></script>
-  <script src="assets/js/plugins/perfect-scrollbar.min.js"></script>
-  <script src="assets/js/plugins/smooth-scrollbar.min.js"></script>
+  <!-- jQuery CDN -->
+  <script src="https://code.jquery.com/jquery-3.6.3.min.js" crossorigin="anonymous"></script>
+  
   <script>
-    var win = navigator.platform.indexOf('Win') > -1;
-    if (win && document.querySelector('#sidenav-scrollbar')) {
-      var options = {
-        damping: '0.5'
-      }
-      Scrollbar.init(document.querySelector('#sidenav-scrollbar'), options);
-    }
+    $(document).ready(function() {
+      // Close custom modal alert
+      $('#close-error-btn').click(function() {
+        $('#error-modal').addClass('hidden').removeClass('flex');
+      });
+      
+      // Close error modal if clicking outside modal content
+      $('#error-modal').click(function(e) {
+        if (e.target === this) {
+          $(this).addClass('hidden').removeClass('flex');
+        }
+      });
+    });
   </script>
-  <!-- Github buttons -->
-  <script src="assets/js/buttons_github.js"></script>
-  <!-- Control Center for Material Dashboard: parallax effects, scripts for the example pages etc -->
-  <script src="assets/js/material-dashboard.min.js?v=3.0.4"></script>
-  <?php
-    if(isset($_GET['msg'])){
-		$msg = base64_decode($_GET['msg']);
-		if($msg == "nok"){
-		echo "<script type='text/javascript'>
-			$(document).ready(function(){
-			 $('#fail_signin').modal('show');
-			});
-			</script>";
-		}
-	}
-  
-  ?>
-  
 </body>
-
 </html>
