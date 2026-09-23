@@ -1,11 +1,102 @@
 <?php
 session_start();
 require_once "include/runtime_config.php";
-require_registration_access();
-if (isset($_GET['token'])) {
+
+$isTokenSubmission = ($_SERVER['REQUEST_METHOD'] ?? '') === 'POST'
+    && isset($_POST['registration_token']);
+$hasRegistrationAccess = has_registration_access();
+
+if ($hasRegistrationAccess && ($isTokenSubmission || isset($_GET['token']))) {
     header('Location: registrasi_kartu.php');
     exit;
 }
+
+if (!$hasRegistrationAccess) {
+    $tokenError = $isTokenSubmission
+        ? 'Token registrasi tidak sesuai. Silakan periksa kembali.'
+        : '';
+    ?>
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Akses Registrasi Kartu</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 20px;
+      font-family: Arial, sans-serif;
+      color: #e2e8f0;
+      background: linear-gradient(135deg, #0f172a, #172554);
+    }
+    .access-card {
+      width: min(100%, 420px);
+      padding: 30px;
+      border: 1px solid rgba(255,255,255,.14);
+      border-radius: 22px;
+      background: rgba(255,255,255,.08);
+      box-shadow: 0 20px 50px rgba(0,0,0,.35);
+    }
+    h1 { margin: 0 0 10px; font-size: 24px; }
+    p { margin: 0 0 22px; color: #cbd5e1; line-height: 1.6; }
+    label { display: block; margin-bottom: 8px; font-size: 14px; font-weight: 700; }
+    input {
+      width: 100%;
+      padding: 13px 14px;
+      border: 1px solid #475569;
+      border-radius: 11px;
+      color: #0f172a;
+      background: #fff;
+    }
+    button, .back-link {
+      display: block;
+      width: 100%;
+      margin-top: 14px;
+      padding: 13px;
+      border: 0;
+      border-radius: 11px;
+      text-align: center;
+      text-decoration: none;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    button { color: #fff; background: #2563eb; }
+    .back-link { color: #cbd5e1; background: rgba(255,255,255,.08); }
+    .error {
+      margin-bottom: 14px;
+      padding: 11px;
+      border-radius: 9px;
+      color: #fecaca;
+      background: rgba(220,38,38,.2);
+    }
+  </style>
+</head>
+<body>
+  <main class="access-card">
+    <h1>Registrasi Kartu</h1>
+    <p>Masukkan token registrasi yang tersimpan pada konfigurasi produksi.</p>
+    <?php if ($tokenError !== ''): ?>
+      <div class="error"><?= htmlspecialchars($tokenError, ENT_QUOTES, 'UTF-8') ?></div>
+    <?php endif; ?>
+    <form method="post" action="registrasi_kartu.php" autocomplete="off">
+      <label for="registration_token">Token registrasi</label>
+      <input id="registration_token" name="registration_token" type="password"
+             required autofocus autocomplete="current-password">
+      <button type="submit">Buka Registrasi Kartu</button>
+    </form>
+    <a class="back-link" href="login.php">Kembali ke Login</a>
+  </main>
+</body>
+</html>
+    <?php
+    exit;
+}
+
 require_once "include/db_config.php";
 $sql = "SELECT * FROM system_config WHERE id =1";
 $system_conf = mysqli_query($GLOBALS["___mysqli_ston"],$sql);

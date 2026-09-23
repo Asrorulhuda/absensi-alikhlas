@@ -166,6 +166,23 @@ include "control/dashboard_rekap.php";
           </div>
         </div>
       </div>
+
+      <div class="row mt-4">
+        <div class="col-12">
+          <div class="card">
+            <div class="card-body d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+              <div>
+                <h6 class="mb-1">Registrasi Kartu RFID</h6>
+                <p class="text-sm text-secondary mb-0">Daftarkan kartu siswa atau guru dari halaman registrasi kartu.</p>
+              </div>
+              <a href="../../registrasi_kartu.php" class="btn bg-gradient-primary mb-0">
+                <i class="material-icons text-sm me-1">add_card</i>
+                Buka Registrasi Kartu
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
 	  
 	  
       <div class="row mt-4">

@@ -25,3 +25,6 @@ Thumbs.db
 .idea/
 *.swp
 *.swo
+
+# Local-only device firmware (contains deployment-specific configuration)
+firmware/nodemcu_absensi/
