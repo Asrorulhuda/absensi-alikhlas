@@ -87,7 +87,7 @@ class Absensi{
 						
 						//echo($this->last_status);
 					}
-					if ($this->tanggal_data != $tanggal_now AND $this->last_status = "IN"){
+					if ($this->tanggal_data != $tanggal_now AND $this->last_status == "IN"){
 						$this->last_status = "OUT";
 					}
 				} else {
@@ -196,7 +196,7 @@ class Absensi{
 					$this->waktu  = $this->jam_masuk;
 					
 					//cek tanggal apakah sama?
-					if ($this->tanggal_data == $tanggal_now AND $this->last_status = "OUT"){
+					if ($this->tanggal_data == $tanggal_now AND $this->last_status == "OUT"){
 						//udah presensi pulang
 						//status=> lock
 						$tmp_uid = $this->uid;
@@ -322,7 +322,7 @@ class Absensi{
 	
 	public function getLastData(){
 		$tanggal_now = date("Y-m-d");
-		$sqlQuery = "SELECT * FROM ". $this->db_data_siswa ." WHERE uid = :uid LIMIT 0,1";
+		$sqlQuery = "SELECT * FROM ". $this->db_data_siswa ." WHERE s_uid = :uid LIMIT 0,1";
 		$stmt = $this->conn->prepare($sqlQuery);
 		$stmt->bindParam(":uid", $this->uid);
 		$stmt->execute();
@@ -338,8 +338,12 @@ class Absensi{
 		
 		if($itemCount > 0){
 			//cek data terakhir absensi
-			$sqlQuery = "SELECT data_absen.uid, tanggal, nama, jam_masuk, jam_keluar, status FROM ". $this->db_data_absen .", ". $this->db_data_siswa ."
-						 WHERE data_absen.uid = data_siswa.uid AND data_absen.uid = :uid";
+			$sqlQuery = "SELECT data_absen.uid, data_absen.tanggal, data_siswa.s_nama AS nama,
+						 data_absen.jam_masuk, data_absen.jam_keluar, data_absen.status
+						 FROM ". $this->db_data_absen ."
+						 INNER JOIN ". $this->db_data_siswa ." ON data_absen.uid = data_siswa.s_uid
+						 WHERE data_absen.uid = :uid
+						 ORDER BY data_absen.id DESC LIMIT 1";
 			$stmt = $this->conn->prepare($sqlQuery);
 			$stmt->bindParam(":uid", $this->uid);
 			$stmt->execute();

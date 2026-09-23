@@ -441,7 +441,7 @@ class Absensi{
 					$this->jam_masuk = date("H:i:s");
 					$this->waktu  = $this->jam_masuk;
 					
-					if ($this->tanggal_data == $tanggal_now AND $this->last_status = "OUT"){
+					if ($this->tanggal_data == $tanggal_now AND $this->last_status == "OUT"){
 						$tmp_uid = $this->uid;
 						$this->status = "LOCKED";
 						$this->ket_absen ="Not be able to present!";
@@ -569,8 +569,12 @@ class Absensi{
 		$itemCount = $stmt->rowCount();
 		
 		if($itemCount > 0){
-			$sqlQuery = "SELECT data_absen.uid, tanggal, nama, jam_masuk, jam_keluar, status FROM ". $this->db_data_absen .", ". $this->db_data_siswa ."
-						 WHERE data_absen.uid = data_siswa.uid AND data_absen.uid = :uid";
+			$sqlQuery = "SELECT data_absen.uid, data_absen.tanggal, data_siswa.s_nama AS nama,
+						 data_absen.jam_masuk, data_absen.jam_keluar, data_absen.status
+						 FROM ". $this->db_data_absen ."
+						 INNER JOIN ". $this->db_data_siswa ." ON data_absen.uid = data_siswa.s_uid
+						 WHERE data_absen.uid = :uid
+						 ORDER BY data_absen.id DESC LIMIT 1";
 			$stmt = $this->conn->prepare($sqlQuery);
 			$stmt->bindParam(":uid", $this->uid);
 			$stmt->execute();

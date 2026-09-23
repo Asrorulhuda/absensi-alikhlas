@@ -1,7 +1,7 @@
 <?php 
 date_default_timezone_set('Asia/Jakarta');
 session_start();
-if ( $_SESSION['akses']!= 'Admin'){// handling if dont'have session
+if (($_SESSION['akses'] ?? '') != 'Admin'){// handling if dont'have session
 
 	header('location:../../index'); 
 	exit();
@@ -98,8 +98,8 @@ if($_SERVER["REQUEST_METHOD"] == "POST"){
 		}
 
 }else {
-    $_GET["id_guru"] = trim($_GET["id_guru"]);
-    if(isset($_GET["id_guru"]) && !empty($_GET["id_guru"])){
+    if(isset($_GET["id_guru"]) && trim((string) $_GET["id_guru"]) !== ''){
+        $_GET["id_guru"] = trim((string) $_GET["id_guru"]);
         $id_guru =  base64_decode($_GET["id_guru"]);
 		$sql = "SELECT * FROM data_guru WHERE g_id='$id_guru'";
 		$g_list = mysqli_query($GLOBALS["___mysqli_ston"], $sql);

@@ -2,9 +2,10 @@
 	session_start();
     date_default_timezone_set("Asia/Jakarta");
     // Ensure only User (Siswa) can access this page. Admin might access too if needed, but primary is User.
-	if ($_SESSION['akses'] != 'User' && $_SESSION['akses'] != 'Admin') {
+	$akses = $_SESSION['akses'] ?? '';
+	if ($akses != 'User' && $akses != 'Admin') {
         // If not logged in, redirect to login via index
-        if(!isset($_SESSION['akses'])) {
+        if($akses === '') {
              header('location:../../login.php');
         } else {
              header('location:../../index.php'); 

@@ -1,7 +1,7 @@
 <?php 
 	session_start();
     date_default_timezone_set("Asia/Jakarta");
-	if ($_SESSION['akses'] != 'Guru') {
+	if (($_SESSION['akses'] ?? '') != 'Guru') {
         header('location:../../index'); 
         exit();
     }

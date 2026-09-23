@@ -1,7 +1,7 @@
 <?php 
 	session_start();
 	date_default_timezone_set('Asia/Jakarta');
-	if ( $_SESSION['akses']!= 'Admin'){// handling if dont'have session
+	if (($_SESSION['akses'] ?? '') != 'Admin'){// handling if dont'have session
 
 		header('location:../../index'); 
 		exit();
@@ -360,7 +360,7 @@
 	<div class="modal fade" id="Modal_stat" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
 	  <div class="modal-dialog modal-dialog-centered" role="document">
 		<div class="modal-content">
-		<?php $stat_modal=$_GET['stat_modal'];?>
+		<?php $stat_modal = $_GET['stat_modal'] ?? '';?>
 		  <div class="modal-header bg-success">
 			<h5 class="modal-title font-weight-normal text-white" id="exampleModalLabel">
 			   <?php if ($stat_modal == "del_ok"){?>
@@ -377,14 +377,14 @@
 		  </div>
 		  <div class="modal-body">
 			 <div class="d-flex justify-content-center text-center">
-			   <p style="font-size:16px;">Data presensi <b><?php echo $_GET["nama"]; ?></b> 
+			   <p style="font-size:16px;">Data presensi <b><?php echo htmlspecialchars((string) ($_GET["nama"] ?? '')); ?></b>
 			   <?php if ($stat_modal == "del_ok"){?>
-					&nbsp; pada <br> <b><?php echo $_GET["tgl"]; ?></b><br> berhasil dihapus!
+					&nbsp; pada <br> <b><?php echo htmlspecialchars((string) ($_GET["tgl"] ?? '')); ?></b><br> berhasil dihapus!
 				   
 			   <?php } if ($stat_modal == "edit_ok" ){?>
-				   &nbsp; pada <br> <b><?php echo $_GET["tgl"]; ?></b><br> berhasil di perbaharui.
+					&nbsp; pada <br> <b><?php echo htmlspecialchars((string) ($_GET["tgl"] ?? '')); ?></b><br> berhasil di perbaharui.
 				<?php } if ($stat_modal == "add_ok" ){?>
-				   &nbsp; berhasil ditambahkan untuk tanggal <b><?php echo $_GET["tgl"]; ?></b> 
+					&nbsp; berhasil ditambahkan untuk tanggal <b><?php echo htmlspecialchars((string) ($_GET["tgl"] ?? '')); ?></b>
 				<?php } ?>
 			   
 			   

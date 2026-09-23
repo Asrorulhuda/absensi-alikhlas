@@ -1,7 +1,7 @@
 <?php 
 date_default_timezone_set('Asia/Jakarta');
 session_start();
-if ( $_SESSION['akses']!= 'Admin'){// handling if dont'have session
+if (($_SESSION['akses'] ?? '') != 'Admin'){// handling if dont'have session
 
 	header('location:../../index'); 
 	exit();
@@ -22,6 +22,12 @@ $__q_alter = "ALTER TABLE wa_notification
   ADD COLUMN IF NOT EXISTS cnfg_template_guru_izin TEXT,
   ADD COLUMN IF NOT EXISTS cnfg_no_kepsek VARCHAR(20)";
 @mysqli_query($GLOBALS["___mysqli_ston"], $__q_alter);
+mysqli_query($GLOBALS["___mysqli_ston"], "INSERT INTO wa_notification
+  (cnfg_id, cnfg_token, cnfg_sender, cnfg_intro, cnfg_status, cnfg_kbm, cnfg_eskul, cnfg_kegiatan,
+   cnfg_intro_kbm, cnfg_intro_eskul, cnfg_intro_kegiatan, cnfg_template_izin, cnfg_template_sakit,
+   cnfg_template_guru_izin, cnfg_no_kepsek)
+  SELECT 1, '', '', '', 0, 0, 0, 0, '', '', '', '', '', '', ''
+  WHERE NOT EXISTS (SELECT 1 FROM wa_notification WHERE cnfg_id = 1)");
 
 $token ="";
 $cnfg_sender ="";
@@ -90,8 +96,8 @@ if(isset($_POST["cnfg_id"]) && !empty($_POST["cnfg_id"])){
 	}
 } else {
 	// Check existence of id parameter before processing further
-	$_GET["id"] = trim($_GET["id"]);
-	if(isset($_GET["id"]) && !empty($_GET["id"])){
+	if(isset($_GET["id"]) && trim((string) $_GET["id"]) !== ''){
+		$_GET["id"] = trim((string) $_GET["id"]);
 		// Get URL parameter
 		$id =  trim($_GET["id"]);
 
@@ -119,22 +125,22 @@ if(isset($_POST["cnfg_id"]) && !empty($_POST["cnfg_id"])){
 
 					// Retrieve individual field value
 
-					$token = htmlspecialchars($row["cnfg_token"]);
-					$cnfg_sender = htmlspecialchars($row["cnfg_sender"]);
-					$template = htmlspecialchars($row["cnfg_intro"]);
-					$service_status = htmlspecialchars($row["cnfg_status"]);
-					$cnfg_kbm = htmlspecialchars($row["cnfg_kbm"]);
-					$cnfg_eskul = htmlspecialchars($row["cnfg_eskul"]);
-					$cnfg_kegiatan = htmlspecialchars($row["cnfg_kegiatan"]);
+					$token = htmlspecialchars((string) ($row["cnfg_token"] ?? ''));
+					$cnfg_sender = htmlspecialchars((string) ($row["cnfg_sender"] ?? ''));
+					$template = htmlspecialchars((string) ($row["cnfg_intro"] ?? ''));
+					$service_status = htmlspecialchars((string) ($row["cnfg_status"] ?? '0'));
+					$cnfg_kbm = htmlspecialchars((string) ($row["cnfg_kbm"] ?? '0'));
+					$cnfg_eskul = htmlspecialchars((string) ($row["cnfg_eskul"] ?? '0'));
+					$cnfg_kegiatan = htmlspecialchars((string) ($row["cnfg_kegiatan"] ?? '0'));
 
                     // Fix: Fetch template content
-                    $cnfg_intro_kbm = htmlspecialchars($row["cnfg_intro_kbm"]);
-                    $cnfg_intro_eskul = htmlspecialchars($row["cnfg_intro_eskul"]);
-                    $cnfg_intro_kegiatan = htmlspecialchars($row["cnfg_intro_kegiatan"]);
-					$cnfg_template_izin = htmlspecialchars($row["cnfg_template_izin"]);
-					$cnfg_template_sakit = htmlspecialchars($row["cnfg_template_sakit"]);
-					$cnfg_template_guru_izin = htmlspecialchars($row["cnfg_template_guru_izin"]);
-					$cnfg_no_kepsek = htmlspecialchars($row["cnfg_no_kepsek"]);
+                    $cnfg_intro_kbm = htmlspecialchars((string) ($row["cnfg_intro_kbm"] ?? ''));
+                    $cnfg_intro_eskul = htmlspecialchars((string) ($row["cnfg_intro_eskul"] ?? ''));
+                    $cnfg_intro_kegiatan = htmlspecialchars((string) ($row["cnfg_intro_kegiatan"] ?? ''));
+					$cnfg_template_izin = htmlspecialchars((string) ($row["cnfg_template_izin"] ?? ''));
+					$cnfg_template_sakit = htmlspecialchars((string) ($row["cnfg_template_sakit"] ?? ''));
+					$cnfg_template_guru_izin = htmlspecialchars((string) ($row["cnfg_template_guru_izin"] ?? ''));
+					$cnfg_no_kepsek = htmlspecialchars((string) ($row["cnfg_no_kepsek"] ?? ''));
 				} else{
 					// URL doesn't contain valid id. Redirect to error page
 					header("location: error.php");

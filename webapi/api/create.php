@@ -3,6 +3,8 @@ header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json; charset=UTF-8");
 
 date_default_timezone_set('Asia/Jakarta');
+include_once '../../include/runtime_config.php';
+require_device_api_key();
 include_once '../../include/db_config.php';
 include_once '../../include/helpers.php';
 include_once '../class/absensi.php';

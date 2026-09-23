@@ -1,7 +1,8 @@
 <?php 
 date_default_timezone_set('Asia/Jakarta');
 session_start();
-if ( ($_SESSION['akses']!= 'Admin') && ($_SESSION['akses']!= 'User') && ($_SESSION['akses']!= 'Guru') ){header('location:../../index'); exit();} 
+$akses = $_SESSION['akses'] ?? '';
+if (($akses != 'Admin') && ($akses != 'User') && ($akses != 'Guru')) {header('location:../../index'); exit();}
 $ses_name = $_SESSION['name'];
 $_SESSION['pages']="User";
 
@@ -203,7 +204,7 @@ if(isset($_POST["id"]) && !empty($_POST["id"])){
 													<div class="d-flex justify-content-center align-items-center">
 													  <div class="image_area" id="avatar_area" style="width:auto;">
 															<label for="upload_image" class="text-center">
-																<img src="<?= htmlspecialchars($d_user['picture']);?>" id="uploaded_image" class="rounded-circle z-depth-2" width="60%" height="60%" />
+															<img src="<?= htmlspecialchars((string) ($d_user['picture'] ?? ''));?>" id="uploaded_image" class="rounded-circle z-depth-2" width="60%" height="60%" />
 																<div class="overlay">
 																	<div class="text">*Click on the image to change the user photo</div>
 																</div>
@@ -286,8 +287,8 @@ if(isset($_POST["id"]) && !empty($_POST["id"])){
 									</div>
 									<!-- hidden val -->
 									<input type="hidden" name="id" value="<?php echo htmlspecialchars($d_user['id']); ?>"/>
-									<input type="hidden" name="id_siswa" value="<?php echo htmlspecialchars($d_user['id_siswa']); ?>"/>
-									<input type="hidden" name="avatar" id="picture" value="<?= htmlspecialchars($d_user['picture']);?>" >
+									<input type="hidden" name="id_siswa" value="<?php echo htmlspecialchars((string) ($d_user['id_siswa'] ?? '')); ?>"/>
+									<input type="hidden" name="avatar" id="picture" value="<?= htmlspecialchars((string) ($d_user['picture'] ?? ''));?>" >
 									<div class="button-row d-flex mt-4">
 										<input type="submit" class="btn bg-gradient-primary ms-auto mb-0 js-btn-next" value="Update" onclick="return checkform()">
 										<?php if ($_SESSION['akses']== 'Admin'){ ?>

@@ -1,4 +1,7 @@
 <?php
+session_start();
+require_once "include/runtime_config.php";
+require_registration_access(true);
 require_once "include/db_config.php";
 
 header('Content-Type: application/json');

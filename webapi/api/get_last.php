@@ -5,7 +5,7 @@
     header("Access-Control-Max-Age: 3600");
     header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
 
-    include_once '../config/database.php';
+    include_once '../../include/db_config.php';
     include_once '../class/absensi.php';
 
     $database = new Database();
@@ -17,7 +17,7 @@
   
     $item->getLastData();
 
-    if($item->uid != null){
+    if($item->status !== null){
 	   
 	   if ($item->status == "INVALID"){
 		  // create array

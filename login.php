@@ -1,4 +1,5 @@
 <?php
+require_once "include/runtime_config.php";
 session_start();
 require_once "include/db_config.php";
 
@@ -14,16 +15,21 @@ if (isset($_SESSION['id'])) {
 
 // --- PERSISTENT LOGIN (REMEMBER ME) CHECK ---
 if (!isset($_SESSION['id']) && isset($_COOKIE['remember_me'])) {
-    list($cookie_id, $cookie_token) = explode(':', $_COOKIE['remember_me']);
+    $cookie_parts = explode(':', $_COOKIE['remember_me'], 2);
+    if (count($cookie_parts) !== 2 || $cookie_parts[0] === '' || $cookie_parts[1] === '') {
+        set_remember_me_cookie('', time() - 3600);
+        $cookie_parts = [null, null];
+    }
+    [$cookie_id, $cookie_token] = $cookie_parts;
     
     // Sanitize
-    $cookie_id = mysqli_real_escape_string($GLOBALS["___mysqli_ston"], $cookie_id);
-    $cookie_token = mysqli_real_escape_string($GLOBALS["___mysqli_ston"], $cookie_token);
+    $cookie_id = mysqli_real_escape_string($GLOBALS["___mysqli_ston"], (string) $cookie_id);
+    $cookie_token = mysqli_real_escape_string($GLOBALS["___mysqli_ston"], (string) $cookie_token);
     
     $sql_check = "SELECT * FROM users WHERE id='$cookie_id' AND remember_token='$cookie_token'";
     $result_check = mysqli_query($GLOBALS["___mysqli_ston"], $sql_check);
     
-    if ($result_check && mysqli_num_rows($result_check) > 0) {
+    if ($cookie_id !== '' && $cookie_token !== '' && $result_check && mysqli_num_rows($result_check) > 0) {
         $user_data = mysqli_fetch_array($result_check);
         $_SESSION['name'] = $user_data["name"];
         $_SESSION['id'] = $user_data["id"];
@@ -32,7 +38,7 @@ if (!isset($_SESSION['id']) && isset($_COOKIE['remember_me'])) {
         $_SESSION['id_guru'] = $user_data["id_guru"];
         
         // Refresh cookie for another 90 days
-        setcookie('remember_me', $cookie_id . ':' . $cookie_token, time() + (86400 * 90), "/");
+        set_remember_me_cookie($cookie_id . ':' . $cookie_token, time() + (86400 * 90));
         
         if ($_SESSION['akses'] == 'Guru') {
              header('Location: pages/dashboard/dashboard_guru.php');
@@ -109,8 +115,7 @@ if(isset($_POST["username"]) && !empty($_POST["username"])){
         $update_token_sql = "UPDATE users SET remember_token='$token' WHERE id='$uid'";
         mysqli_query($GLOBALS["___mysqli_ston"], $update_token_sql);
         
-        $secure_cookie = false; // Set to true if HTTPS is enabled
-        setcookie('remember_me', $uid . ':' . $token, time() + (86400 * 90), "/", "", $secure_cookie, true);
+        set_remember_me_cookie($uid . ':' . $token, time() + (86400 * 90));
         
         if ($_SESSION['akses'] == 'Guru') {
              header('location:pages/dashboard/dashboard_guru.php');

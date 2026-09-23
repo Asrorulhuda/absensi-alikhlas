@@ -8,6 +8,10 @@
 
 date_default_timezone_set("Asia/Jakarta");
 
+// PHP 8.1+ enables strict MySQLi exceptions by default. The application was
+// written around the legacy false-return checks, so retain those semantics.
+mysqli_report(MYSQLI_REPORT_OFF);
+
 // Database credentials
 $db_server = 'localhost';
 $db_name = 'your_database_name';
@@ -48,23 +52,23 @@ if ($GLOBALS["___mysqli_ston"]) {
  */
 class Database
 {
-    private $host = "localhost";
-    private $database_name = 'your_database_name';
-    private $username = 'your_database_user';
-    private $password = 'your_database_password';
     public $conn;
 
     public function getConnection()
     {
+        global $db_server, $db_name, $db_user, $db_password;
         $this->conn = null;
         try {
             $this->conn = new PDO(
-                "mysql:host=" . $this->host . ";dbname=" . $this->database_name,
-                $this->username,
-                $this->password
+                "mysql:host={$db_server};dbname={$db_name};charset=utf8mb4",
+                $db_user,
+                $db_password,
+                [
+                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                    PDO::ATTR_EMULATE_PREPARES => false,
+                ]
             );
-            $this->conn->exec("SET NAMES utf8");
-            $this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         } catch (PDOException $exception) {
             error_log("Database Connection Error: " . $exception->getMessage());
             die("Database connection failed. Please contact administrator.");

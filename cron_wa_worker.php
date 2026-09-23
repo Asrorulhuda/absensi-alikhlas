@@ -8,6 +8,19 @@
 set_time_limit(60);
 date_default_timezone_set('Asia/Jakarta');
 
+require_once __DIR__ . '/include/runtime_config.php';
+
+// CLI cron is preferred. HTTP cron requires a private token so this worker
+// cannot be triggered repeatedly by an unauthenticated visitor.
+if (PHP_SAPI !== 'cli') {
+    $expectedCronToken = (string) app_config('cron_token', '');
+    $providedCronToken = (string) ($_SERVER['HTTP_X_CRON_TOKEN'] ?? $_GET['token'] ?? '');
+    if ($expectedCronToken === '' || $providedCronToken === '' || !hash_equals($expectedCronToken, $providedCronToken)) {
+        http_response_code(403);
+        exit("Forbidden.\n");
+    }
+}
+
 // Include DB config and helpers
 require_once __DIR__ . '/include/db_config.php';
 require_once __DIR__ . '/include/helpers.php';

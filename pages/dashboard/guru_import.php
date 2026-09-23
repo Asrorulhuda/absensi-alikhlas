@@ -1,6 +1,6 @@
 <?php
 session_start();
-if ($_SESSION['akses'] != 'Admin') {
+if (($_SESSION['akses'] ?? '') != 'Admin') {
     header('location:../../index');
     exit();
 }

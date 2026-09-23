@@ -1,7 +1,7 @@
 <?php 
 date_default_timezone_set('Asia/Jakarta');
 session_start();
-if ( $_SESSION['akses']!= 'Admin'){// handling if dont'have session
+if (($_SESSION['akses'] ?? '') != 'Admin'){// handling if dont'have session
 
 	header('location:../../index'); 
 	exit();
@@ -26,8 +26,11 @@ $s_nama_wali = "";
 $s_picture = "";
 $s_jurusan = "";
 $s_kelas = "";
+$tingkat = "";
 $s_status = "";
 $s_created = "";
+$uid_siswa = "";
+$form_error = "";
 
 $s_uid_err = "";
 $s_nama_err = "";
@@ -48,19 +51,19 @@ $s_created_err = "";
 
 // Processing form data when form is submitted
 if($_SERVER["REQUEST_METHOD"] == "POST"){
-	$s_uid = trim($_POST["s_uid"]);
-	$s_nama = trim($_POST["s_nama"]);
-	$s_nis = trim($_POST["s_nis"]);
-	$s_kelamin = trim($_POST["s_kelamin"]);
-	$s_tgl_lahir = trim($_POST["s_tgl_lahir"]);
-	$s_phone = trim($_POST["s_phone"]);
-	$s_kontak_wali = trim($_POST["s_kontak_wali"]);
-	$s_alamat = trim($_POST["s_alamat"]);
-	$s_nama_wali = trim($_POST["s_nama_wali"]);
-	$s_picture = trim($_POST["s_picture"]);
-	$s_jurusan = trim($_POST["s_jurusan"]);
-	$s_kelas = trim($_POST["s_kelas"]);
-	$s_status = trim($_POST["s_status"]);
+	$s_uid = strtoupper(trim($_POST["s_uid"] ?? ''));
+	$s_nama = trim($_POST["s_nama"] ?? '');
+	$s_nis = trim($_POST["s_nis"] ?? '');
+	$s_kelamin = trim($_POST["s_kelamin"] ?? '');
+	$s_tgl_lahir = trim($_POST["s_tgl_lahir"] ?? '');
+	$s_phone = trim($_POST["s_phone"] ?? '');
+	$s_kontak_wali = trim($_POST["s_kontak_wali"] ?? '');
+	$s_alamat = trim($_POST["s_alamat"] ?? '');
+	$s_nama_wali = trim($_POST["s_nama_wali"] ?? '');
+	$s_picture = trim($_POST["s_picture"] ?? '');
+	$s_jurusan = trim($_POST["s_jurusan"] ?? '');
+	$s_kelas = trim($_POST["s_kelas"] ?? '');
+	$s_status = trim($_POST["s_status"] ?? '');
 	$s_created = date("Y-m-d");
 	
 
@@ -77,30 +80,54 @@ if($_SERVER["REQUEST_METHOD"] == "POST"){
 	  exit('Something weird happened'); //something a user can understand
 	}
 
-	$vars = parse_columns('data_siswa', $_POST);
-	$stmt = $pdo->prepare("INSERT INTO data_siswa (s_uid,s_nama,s_nis,s_kelamin,s_tgl_lahir,s_phone,s_alamat,s_kontak_wali,s_nama_wali,s_picture,s_jurusan,s_kelas,s_status,s_created) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+	$placeholder_uids = ['UID_KARTU', 'KARTU_UID', 'YOUR_UID'];
+	if ($s_uid === '' || in_array($s_uid, $placeholder_uids, true)) {
+		$form_error = 'UID kartu belum valid. Tempelkan kartu asli pada mesin atau masukkan UID kartu yang sebenarnya.';
+	} else {
+		$checkUid = $pdo->prepare(
+			"SELECT 'siswa' AS jenis, s_nama AS nama FROM data_siswa WHERE s_uid = ?
+			 UNION ALL
+			 SELECT 'guru' AS jenis, g_nama AS nama FROM data_guru WHERE g_uid = ?
+			 LIMIT 1"
+		);
+		$checkUid->execute([$s_uid, $s_uid]);
+		$registeredCard = $checkUid->fetch();
 
-	if($stmt->execute([ $s_uid,$s_nama,$s_nis,$s_kelamin,$s_tgl_lahir,$s_phone,$s_alamat,$s_kontak_wali,$s_nama_wali,$s_picture,$s_jurusan,$s_kelas,$s_status,$s_created  ])) {
-			$newId = $pdo->lastInsertId();
-			$uname = strtolower(preg_replace('/\s+/', '', $s_nama)) . rand(100,999);
-			$upict = ($s_picture && trim($s_picture)!="") ? $s_picture : '../../assets/img/operator_pict/user_default.png';
-			$upass = md5(($s_nis && trim($s_nis)!="") ? $s_nis : '123456');
-			$stmtU = $pdo->prepare("INSERT INTO users (name,email,username,password,picture,level_akses,id_siswa) VALUES (?,?,?,?,?,?,?)");
-			$stmtU->execute([$s_nama,'',$uname,$upass,$upict,'User',$newId]);
-			mysqli_query($GLOBALS["___mysqli_ston"], "UPDATE data_siswa SET user_stat=1 WHERE s_id='$newId'");
-			$stmt = null;
-			$sql = "DELETE FROM data_invalid WHERE uid = '$s_uid'";
-			$proses = mysqli_query($GLOBALS["___mysqli_ston"], $sql);
-			header("location: siswa");
-		} else{
-			echo "Something went wrong. Please try again later.";
+		if ($registeredCard) {
+			$form_error = 'UID ' . $s_uid . ' sudah digunakan oleh ' . $registeredCard['jenis'] . ' ' . $registeredCard['nama'] . '.';
+		} else {
+			try {
+				$pdo->beginTransaction();
+				$stmt = $pdo->prepare("INSERT INTO data_siswa (s_uid,s_nama,s_nis,s_kelamin,s_tgl_lahir,s_phone,s_alamat,s_kontak_wali,s_nama_wali,s_picture,s_jurusan,s_kelas,s_status,s_created) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+				$stmt->execute([$s_uid,$s_nama,$s_nis,$s_kelamin,$s_tgl_lahir,$s_phone,$s_alamat,$s_kontak_wali,$s_nama_wali,$s_picture,$s_jurusan,$s_kelas,$s_status,$s_created]);
+
+				$newId = $pdo->lastInsertId();
+				$uname = strtolower(preg_replace('/\s+/', '', $s_nama)) . rand(100,999);
+				$upict = ($s_picture !== '') ? $s_picture : '../../assets/img/operator_pict/user_default.png';
+				$upass = password_hash($s_nis !== '' ? $s_nis : '123456', PASSWORD_BCRYPT);
+				$stmtU = $pdo->prepare("INSERT INTO users (name,email,username,password,picture,level_akses,id_siswa) VALUES (?,?,?,?,?,?,?)");
+				$stmtU->execute([$s_nama,'',$uname,$upass,$upict,'User',$newId]);
+
+				$pdo->prepare("UPDATE data_siswa SET user_stat=1 WHERE s_id=?")->execute([$newId]);
+				$pdo->prepare("DELETE FROM data_invalid WHERE uid=?")->execute([$s_uid]);
+				$pdo->commit();
+				header("location: siswa");
+				exit();
+			} catch (PDOException $e) {
+				if ($pdo->inTransaction()) $pdo->rollBack();
+				error_log('Gagal mendaftarkan siswa: ' . $e->getMessage());
+				$form_error = $e->getCode() === '23000'
+					? 'UID atau akun siswa sudah terdaftar. Gunakan data yang berbeda.'
+					: 'Data siswa gagal disimpan. Silakan coba kembali.';
+			}
 		}
+	}
 
 }else{
     // Allow optional UID for manual registration
-    $uid_siswa = "";
     if(isset($_GET["uid"]) && !empty($_GET["uid"])){
-        $uid_siswa =  trim($_GET["uid"]);
+		$uid_siswa = strtoupper(trim($_GET["uid"]));
+		$s_uid = $uid_siswa;
     }
 }	
 
@@ -178,6 +205,11 @@ if($_SERVER["REQUEST_METHOD"] == "POST"){
 				
 				<form action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="post">
 				<div class="card-body px-0 pb-2 mx-4">
+					<?php if ($form_error !== ''): ?>
+						<div class="alert alert-danger text-white" role="alert">
+							<?php echo htmlspecialchars($form_error); ?>
+						</div>
+					<?php endif; ?>
 					<div class="row mb-2 mt-2">
 						<h5 class="font-weight-bolder mb-0">Data Siswa</h5>
 						<p class="mb-0 text-sm">Detail Informasi Siswa</p>
@@ -204,7 +236,7 @@ if($_SERVER["REQUEST_METHOD"] == "POST"){
 							    <div class="input-group input-group-outline mb-4">
 								  <?php 
 										if ($uid_siswa == ""){?>
-											<input class="form-control" type="text" name="s_uid" id="s_uid" placeholder="Input UID Kartu" required>
+											<input class="form-control" type="text" name="s_uid" id="s_uid" value="<?php echo htmlspecialchars($s_uid); ?>" placeholder="Input UID Kartu" required>
 										<?php 
 										}else{?>
 											<input class="form-control" type="text" name="s_uid" id="s_uid"  value="<?php echo $uid_siswa;?>" readonly>
@@ -212,6 +244,7 @@ if($_SERVER["REQUEST_METHOD"] == "POST"){
 										}
 									?>
 								</div>
+								<small id="uid-feedback" class="text-muted"></small>
 							</div>
 						</div>
 						<div class="col-12 col-sm-4 mt-3 mt-sm-0">
@@ -527,9 +560,13 @@ if($_SERVER["REQUEST_METHOD"] == "POST"){
                         var currentUid = $('#s_uid').val();
                         if (currentUid !== response.uid) {
                              $('#s_uid').val(response.uid);
-                             // Optional: Visual feedback or toast
                              console.log("New card detected: " + response.uid);
                         }
+						$('#uid-feedback').removeClass('text-danger').addClass('text-success').text('Kartu terbaca: ' + response.uid);
+					} else if (response.status === 'registered') {
+						$('#uid-feedback').removeClass('text-success').addClass('text-danger').text(response.message);
+					} else if (response.status === 'invalid') {
+						$('#uid-feedback').removeClass('text-success').addClass('text-danger').text(response.message);
                     }
                 },
                 error: function(xhr, status, error) {

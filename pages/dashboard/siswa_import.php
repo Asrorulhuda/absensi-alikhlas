@@ -1,6 +1,6 @@
 <?php
 session_start();
-if ($_SESSION['akses'] != 'Admin') {
+if (($_SESSION['akses'] ?? '') != 'Admin') {
     header('location:../../index');
     exit();
 }
@@ -74,7 +74,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES["csv_file"])) {
                         $stmt->execute([$uid, $nama, $nis, $kelamin, $tgl_lahir, $phone, $alamat, $nama_wali, $kontak_wali, $kelas, $jurusan_id]);
                         $newId = $pdo->lastInsertId();
                         $uname = strtolower(preg_replace('/\s+/', '', $nama)) . rand(100,999);
-                        $upass = md5(($nis && trim($nis)!="") ? $nis : '123456');
+                        $upass = password_hash(($nis && trim($nis)!="") ? $nis : '123456', PASSWORD_BCRYPT);
                         $upict = '../../assets/img/operator_pict/user_default.png';
                         $stmtU = $pdo->prepare("INSERT INTO users (name,email,username,password,picture,level_akses,id_siswa) VALUES (?,?,?,?,?,?,?)");
                         $stmtU->execute([$nama,'',$uname,$upass,$upict,'User',$newId]);

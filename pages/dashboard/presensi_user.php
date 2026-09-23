@@ -1,7 +1,8 @@
 <?php 
 	date_default_timezone_set('Asia/Jakarta');
 	session_start();
-	if ( ($_SESSION['akses']!= 'Admin') && ($_SESSION['akses']!= 'User') ){header('location:../../index'); exit();}  
+	$akses = $_SESSION['akses'] ?? '';
+	if (($akses != 'Admin') && ($akses != 'User')) {header('location:../../index'); exit();}
 	$ses_name = $_SESSION['name'];
 	$_SESSION['pages']="Presensi";
 	$id_siswa = $_SESSION['id_siswa'];
@@ -75,7 +76,8 @@
 						mysqli_query($GLOBALS["___mysqli_ston"], "INSERT INTO tmp_datacard(uid, jam, card_status) VALUES('$esc_uid','$now_jam','$act')");
 					}
 				}else{
-					$q = "INSERT INTO data_absen(uid,status,keterangan,ket_masuk,ket_keluar) VALUES('$uid','$act','$act','".mysqli_real_escape_string($GLOBALS["___mysqli_ston"], $alasan)."','".($evidencePath ? "BUKTI:$evidencePath" : "")."')";
+					$q = "INSERT INTO data_absen(tanggal,jam_masuk,jam_keluar,uid,status,keterangan,ket_masuk,ket_keluar,attendance_type)
+						  VALUES(CURDATE(),'00:00:00','00:00:00','$uid','$act','$act','".mysqli_real_escape_string($GLOBALS["___mysqli_ston"], $alasan)."','".($evidencePath ? "BUKTI:$evidencePath" : "")."','KBM')";
 					mysqli_query($GLOBALS["___mysqli_ston"], $q);
 					$_SESSION['presensi_msg'] = "Berhasil mengajukan $act untuk hari ini.";
 					mysqli_query($GLOBALS["___mysqli_ston"], "TRUNCATE tmp_datacard");
@@ -91,8 +93,8 @@
 					$tpl_izin = isset($c['cnfg_template_izin']) ? $c['cnfg_template_izin'] : '';
 					$tpl_sakit = isset($c['cnfg_template_sakit']) ? $c['cnfg_template_sakit'] : '';
 				}
-				$kontak_wali = trim($urow['s_kontak_wali']);
-				$nama_wali = trim($urow['s_nama_wali']);
+				$kontak_wali = trim((string) ($urow['s_kontak_wali'] ?? ''));
+				$nama_wali = trim((string) ($urow['s_nama_wali'] ?? ''));
 				if($cnfg_status == 1){
 					mysqli_query($GLOBALS["___mysqli_ston"], "CREATE TABLE IF NOT EXISTS wa_logs (
 						id INT(11) NOT NULL AUTO_INCREMENT,
@@ -262,7 +264,7 @@
 					<div class="col-md-10 col-ms-8">
 					   <?php
 							
-							$id_siswa_safe = mysqli_real_escape_string($GLOBALS["___mysqli_ston"], $id_siswa);
+							$id_siswa_safe = mysqli_real_escape_string($GLOBALS["___mysqli_ston"], (string) $id_siswa);
 							$sql = "SELECT * FROM data_siswa, opsi_jurusan WHERE s_jurusan = j_id AND s_id='$id_siswa_safe' LIMIT 1";
 							$s_siswa = mysqli_query($GLOBALS["___mysqli_ston"], $sql);
 							if($s_siswa && mysqli_num_rows($s_siswa) > 0){

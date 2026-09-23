@@ -1,7 +1,7 @@
 <?php 
 	date_default_timezone_set('Asia/Jakarta');
 	session_start();
-	if ( $_SESSION['akses']!= 'Admin'){// handling if dont'have session
+	if (($_SESSION['akses'] ?? '') != 'Admin'){// handling if dont'have session
 
 		header('location:../../index'); 
 		exit();
@@ -13,6 +13,7 @@
 	require_once "../../include/helpers.php";
 	sync_user_accounts();
 	include "control/confignusers_data.php";
+	$modal_stat = "";
 	
 	$sql = "SELECT * FROM users";
 	
@@ -158,7 +159,7 @@
 											<td>
 												<div class="d-flex px-2 py-1">
 												    <div>
-													    <img src="<?= htmlspecialchars($d_user['picture']);?>" class="avatar avatar-sm me-3 border-radius-lg" alt="venue <?= htmlspecialchars($d_user['username']);?>">
+													    <img src="<?= htmlspecialchars((string) ($d_user['picture'] ?? ''));?>" class="avatar avatar-sm me-3 border-radius-lg" alt="venue <?= htmlspecialchars((string) $d_user['username']);?>">
 														
 												    </div>
 													<div class="d-flex flex-column justify-content-center">

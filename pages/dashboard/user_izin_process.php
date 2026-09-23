@@ -2,7 +2,8 @@
 session_start();
 date_default_timezone_set("Asia/Jakarta");
 
-if ($_SESSION['akses'] != 'User' && $_SESSION['akses'] != 'Admin') {
+$akses = $_SESSION['akses'] ?? '';
+if ($akses != 'User' && $akses != 'Admin') {
     header('location:../../index.php');
     exit();
 }

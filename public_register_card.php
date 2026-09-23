@@ -1,4 +1,7 @@
 <?php
+session_start();
+require_once "include/runtime_config.php";
+require_registration_access(true);
 require_once "include/db_config.php";
 
 header('Content-Type: application/json');
@@ -39,7 +42,7 @@ if(isset($_POST['uid']) && isset($_POST['nama']) && isset($_POST['nomor']) && is
         }
         
         $sql = "INSERT INTO data_siswa (s_nama, s_nis, s_uid) VALUES ('$nama', '$nomor', '$uid')";
-    } else {
+    } else if ($role == 'Guru') {
         // Check if NIP already exists
         $check_nip = "SELECT g_id FROM data_guru WHERE g_nip = '$nomor'";
         $result_nip = mysqli_query($GLOBALS["___mysqli_ston"], $check_nip);
@@ -52,7 +55,17 @@ if(isset($_POST['uid']) && isset($_POST['nama']) && isset($_POST['nomor']) && is
             exit;
         }
         
-        $sql = "INSERT INTO data_guru (g_nama, g_nip, g_uid) VALUES ('$nama', '$nomor', '$uid')";
+        $sql = "INSERT INTO data_guru
+                (g_nama, g_nip, g_uid, g_tgl_lahir, g_kelamin, g_jabatan,
+                 g_mail, g_contact, g_kompetensi, g_picture, g_tgs_tambahan, g_alamat)
+                VALUES ('$nama', '$nomor', '$uid', '1970-01-01', '-', 'Guru',
+                        '', '', '-', '../../assets/img/operator_pict/user_default.png', '-', '-')";
+    } else {
+        echo json_encode([
+            'status' => 'error',
+            'message' => 'Role tidak valid.'
+        ]);
+        exit;
     }
     
     if(mysqli_query($GLOBALS["___mysqli_ston"], $sql)) {

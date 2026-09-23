@@ -13,14 +13,14 @@
 	$today = date("Y-m-d");
 		
  
-    $s_member= mysqli_query($GLOBALS["___mysqli_ston"], "SELECT * FROM data_siswa");
-	$rowcount = mysqli_num_rows($s_member);
+    $s_member = mysqli_query($GLOBALS["___mysqli_ston"], "SELECT COUNT(*) AS total FROM data_siswa");
+    $rowcount = $s_member ? (int) mysqli_fetch_assoc($s_member)['total'] : 0;
 	
-	$s_absensi = mysqli_query($GLOBALS["___mysqli_ston"], "SELECT * FROM data_absen WHERE tanggal='".$today."' GROUP BY data_absen.uid");
-	$absensi = mysqli_num_rows($s_absensi);
+	$s_absensi = mysqli_query($GLOBALS["___mysqli_ston"], "SELECT COUNT(DISTINCT uid) AS total FROM data_absen WHERE tanggal='".$today."'");
+	$absensi = $s_absensi ? (int) mysqli_fetch_assoc($s_absensi)['total'] : 0;
 	
-	$s_invalid = mysqli_query($GLOBALS["___mysqli_ston"], "SELECT * FROM data_invalid GROUP BY uid");
-	$invalid = mysqli_num_rows($s_invalid);
+	$s_invalid = mysqli_query($GLOBALS["___mysqli_ston"], "SELECT COUNT(DISTINCT uid) AS total FROM data_invalid");
+	$invalid = $s_invalid ? (int) mysqli_fetch_assoc($s_invalid)['total'] : 0;
 	
 	
 	if ($rowcount > 0){
@@ -37,9 +37,9 @@
 		$d = date('Y-m-d', strtotime("-$i days"));
 		$chart_labels[] = date('D', strtotime($d)); // Day name like Mon, Tue
 		
-		$sql_chart = "SELECT * FROM data_absen WHERE tanggal='$d' GROUP BY uid";
+		$sql_chart = "SELECT COUNT(DISTINCT uid) AS total FROM data_absen WHERE tanggal='$d'";
 		$q_chart = mysqli_query($GLOBALS["___mysqli_ston"], $sql_chart);
-		$chart_data[] = mysqli_num_rows($q_chart);
+		$chart_data[] = $q_chart ? (int) mysqli_fetch_assoc($q_chart)['total'] : 0;
 	}
 	$chart_labels_json = json_encode($chart_labels);
 	$chart_data_json = json_encode($chart_data);

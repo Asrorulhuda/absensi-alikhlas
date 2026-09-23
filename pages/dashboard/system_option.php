@@ -1,7 +1,7 @@
 <?php 
 	date_default_timezone_set('Asia/Jakarta');
 	session_start();
-	if ( $_SESSION['akses']!= 'Admin'){// handling if dont'have session
+	if (($_SESSION['akses'] ?? '') != 'Admin'){// handling if dont'have session
 
 		header('location:../../index'); 
 		exit();
@@ -25,6 +25,7 @@
 	$tk_ket = "";
 	$tk_name_err = "";
 	$tk_ket_err = "";
+	$modal_stat = "";
 
 	// Processing form data when form is submitted
 	if($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['buttonTambahJurusan'])) {

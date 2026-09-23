@@ -1,81 +1,57 @@
 <?php
 /**
- * GitHub Webhook Receiver
- * 
- * When GitHub sends a push event, this script saves a flag file
- * so the dashboard can show a "update available" notification.
- * 
- * SETUP:
- * 1. GitHub repo → Settings → Webhooks → Add webhook
- *    - Payload URL: https://yourdomain.com/deploy.php
- *    - Content type: application/json
- *    - Secret: (same as $secret below)
- *    - Events: Just the push event
+ * GitHub webhook receiver for the dashboard's "update available" flag.
+ * Use webhook_deploy.php instead when deployment must happen automatically.
  */
+require_once __DIR__ . '/include/runtime_config.php';
 
-// ============================================
-// CONFIGURATION
-// ============================================
-$secret = 'absensi_alikhlas_2023'; // Change this to match your GitHub webhook secret
-$branch = 'main';
-$flagFile = __DIR__ . '/update_available.json';
-$logFile = __DIR__ . '/deploy.log';
+header('Content-Type: application/json; charset=UTF-8');
 
-// ============================================
-// SECURITY VERIFICATION
-// ============================================
-$headers = getallheaders();
-$hubSignature = isset($headers['X-Hub-Signature-256']) ? $headers['X-Hub-Signature-256'] : '';
-
-if (empty($hubSignature)) {
-    http_response_code(403);
-    die('No signature provided.');
+if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
+    http_response_code(405);
+    header('Allow: POST');
+    echo json_encode(['error' => 'Method not allowed']);
+    exit;
 }
 
 $payload = file_get_contents('php://input');
-$hash = 'sha256=' . hash_hmac('sha256', $payload, $secret);
-
-if (!hash_equals($hash, $hubSignature)) {
+if ($payload === false || !verify_github_webhook($payload)) {
     http_response_code(403);
-    die('Invalid signature.');
+    echo json_encode(['error' => 'Invalid signature']);
+    exit;
 }
 
-// Verify it's a push to the correct branch
 $data = json_decode($payload, true);
-$ref = isset($data['ref']) ? $data['ref'] : '';
-
-if ($ref !== 'refs/heads/' . $branch) {
-    die('Not the target branch. Ignoring.');
+if (!is_array($data)) {
+    http_response_code(400);
+    echo json_encode(['error' => 'Invalid JSON payload']);
+    exit;
 }
 
-// ============================================
-// SAVE UPDATE FLAG
-// ============================================
-$pusher = isset($data['pusher']['name']) ? $data['pusher']['name'] : 'Unknown';
-$commitMsg = '';
-$commitCount = 0;
-
-if (isset($data['commits']) && is_array($data['commits'])) {
-    $commitCount = count($data['commits']);
-    $lastCommit = end($data['commits']);
-    $commitMsg = isset($lastCommit['message']) ? $lastCommit['message'] : '';
+$branch = (string) app_config('deploy_branch', 'main');
+if (($data['ref'] ?? '') !== 'refs/heads/' . $branch) {
+    echo json_encode(['status' => 'ignored', 'message' => 'Not the deployment branch']);
+    exit;
 }
 
+$commits = is_array($data['commits'] ?? null) ? $data['commits'] : [];
+$lastCommit = $commits ? end($commits) : [];
 $updateInfo = [
     'available' => true,
     'timestamp' => date('Y-m-d H:i:s'),
-    'pusher' => $pusher,
+    'pusher' => (string) ($data['pusher']['name'] ?? 'Unknown'),
     'branch' => $branch,
-    'commit_message' => $commitMsg,
-    'commit_count' => $commitCount,
-    'compare_url' => isset($data['compare']) ? $data['compare'] : ''
+    'commit_message' => (string) ($lastCommit['message'] ?? ''),
+    'commit_count' => count($commits),
+    'compare_url' => (string) ($data['compare'] ?? ''),
 ];
 
-file_put_contents($flagFile, json_encode($updateInfo, JSON_PRETTY_PRINT), LOCK_EX);
-
-// Log
-$log = date('Y-m-d H:i:s') . " | Push detected from: $pusher | Commits: $commitCount | Message: $commitMsg\n";
-file_put_contents($logFile, $log, FILE_APPEND | LOCK_EX);
+$encoded = json_encode($updateInfo, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+if ($encoded === false || file_put_contents(__DIR__ . '/update_available.json', $encoded, LOCK_EX) === false) {
+    http_response_code(500);
+    echo json_encode(['error' => 'Cannot write update flag']);
+    exit;
+}
 
 http_response_code(200);
 echo json_encode(['status' => 'ok', 'message' => 'Update flag saved']);

@@ -1,7 +1,7 @@
 <?php 
 	date_default_timezone_set('Asia/Jakarta');
 	session_start();
-	if ( $_SESSION['akses']!= 'Admin'){// handling if dont'have session
+	if (($_SESSION['akses'] ?? '') != 'Admin'){// handling if dont'have session
 
 		header('location:../../index'); 
 		exit();
@@ -15,6 +15,7 @@
 	$kelas="";
 	$jurusan="";
 	$sql="";
+	$modal_stat="";
 	
 	
 	$sql = "SELECT * FROM data_guru ORDER BY g_id DESC";

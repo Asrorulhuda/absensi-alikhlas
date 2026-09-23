@@ -13,12 +13,11 @@ $d_location = "";
 $d_status = "";
 $d_base = "";
 
-$_GET["dev_eui"] = trim($_GET["dev_eui"]);
-if(isset($_GET["dev_eui"]) && !empty($_GET["dev_eui"])){
-  $d_eui = $_GET['dev_eui'];
+if(isset($_GET["dev_eui"]) && trim((string) $_GET["dev_eui"]) !== ''){
+  $d_eui = mysqli_real_escape_string($GLOBALS["___mysqli_ston"], trim((string) $_GET['dev_eui']));
   $sql = "SELECT * FROM reader_devices,room WHERE d_location=r_id AND d_eui='$d_eui'";
   $s_reader = mysqli_query($GLOBALS["___mysqli_ston"], $sql);
-  $rowcount = mysqli_num_rows($s_reader);
+  $rowcount = $s_reader ? mysqli_num_rows($s_reader) : 0;
   if ($rowcount > 0){
 	$d_reader = mysqli_fetch_array($s_reader);
 	$d_type  =  $d_reader['d_type'];

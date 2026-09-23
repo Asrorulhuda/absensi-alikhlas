@@ -45,7 +45,7 @@ function parse_columns($table_name, $postdata) {
                 } else {
                     $default =  date('Y-m-d H:i:s');
                 }
-                if ($postdata[$row['COLUMN_NAME']] == 'CURRENT_TIMESTAMP') {
+                if (($postdata[$row['COLUMN_NAME']] ?? null) == 'CURRENT_TIMESTAMP') {
                     $_POST[$row['COLUMN_NAME']] =  date('Y-m-d H:i:s');
                 }
                 break;
@@ -84,15 +84,15 @@ function enqueue_wa($phone, $message, $meta = []) {
     global $link;
     
     // Ensure inputs are clean
-    $phone = mysqli_real_escape_string($link, $phone);
-    $message = mysqli_real_escape_string($link, $message);
+    $phone = mysqli_real_escape_string($link, (string) $phone);
+    $message = mysqli_real_escape_string($link, (string) $message);
     
-    $siswa_uid = isset($meta['siswa_uid']) ? mysqli_real_escape_string($link, $meta['siswa_uid']) : '';
-    $siswa_nama = isset($meta['siswa_nama']) ? mysqli_real_escape_string($link, $meta['siswa_nama']) : '';
-    $kelas = isset($meta['kelas']) ? mysqli_real_escape_string($link, $meta['kelas']) : '';
-    $tipe = isset($meta['tipe']) ? mysqli_real_escape_string($link, $meta['tipe']) : '';
-    $target = isset($meta['target']) ? mysqli_real_escape_string($link, $meta['target']) : '';
-    $guru_nama = isset($meta['guru_nama']) ? mysqli_real_escape_string($link, $meta['guru_nama']) : '';
+    $siswa_uid = isset($meta['siswa_uid']) ? mysqli_real_escape_string($link, (string) $meta['siswa_uid']) : '';
+    $siswa_nama = isset($meta['siswa_nama']) ? mysqli_real_escape_string($link, (string) $meta['siswa_nama']) : '';
+    $kelas = isset($meta['kelas']) ? mysqli_real_escape_string($link, (string) $meta['kelas']) : '';
+    $tipe = isset($meta['tipe']) ? mysqli_real_escape_string($link, (string) $meta['tipe']) : '';
+    $target = isset($meta['target']) ? mysqli_real_escape_string($link, (string) $meta['target']) : '';
+    $guru_nama = isset($meta['guru_nama']) ? mysqli_real_escape_string($link, (string) $meta['guru_nama']) : '';
 
     // Automatically create table if it doesn't exist
     mysqli_query($link, "CREATE TABLE IF NOT EXISTS wa_queue (
@@ -129,8 +129,8 @@ function sync_user_accounts() {
         while ($mg = mysqli_fetch_assoc($q_missing_guru)) {
             $g_id = $mg['g_id'];
             $g_nama = $mg['g_nama'];
-            $g_nip = trim($mg['g_nip']);
-            $g_mail = trim($mg['g_mail']);
+            $g_nip = trim((string) ($mg['g_nip'] ?? ''));
+            $g_mail = trim((string) ($mg['g_mail'] ?? ''));
             $g_picture = !empty($mg['g_picture']) ? $mg['g_picture'] : 'assets/img/user_pict/user_default.png';
             
             // Clean username (alphanumeric + random suffix)
@@ -155,7 +155,7 @@ function sync_user_accounts() {
         while ($ms = mysqli_fetch_assoc($q_missing_siswa)) {
             $s_id = $ms['s_id'];
             $s_nama = $ms['s_nama'];
-            $s_nis = trim($ms['s_nis']);
+            $s_nis = trim((string) ($ms['s_nis'] ?? ''));
             $s_picture = !empty($ms['s_picture']) ? $ms['s_picture'] : 'assets/img/user_pict/user_default.png';
             $s_phone = trim($ms['s_phone'] ?? '');
             
@@ -167,7 +167,7 @@ function sync_user_accounts() {
             
             $stmt_ins = mysqli_prepare($link, "INSERT INTO users (name, email, username, password, picture, level_akses, id_siswa, id_guru) VALUES (?, ?, ?, ?, ?, 'User', ?, 0)");
             if ($stmt_ins) {
-                mysqli_stmt_bind_param($stmt_ins, "sssssii", $s_nama, $s_phone, $uname, $upass, $s_picture, $s_id);
+                mysqli_stmt_bind_param($stmt_ins, "sssssi", $s_nama, $s_phone, $uname, $upass, $s_picture, $s_id);
                 mysqli_stmt_execute($stmt_ins);
                 mysqli_stmt_close($stmt_ins);
                 

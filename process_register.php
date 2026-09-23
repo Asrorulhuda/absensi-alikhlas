@@ -1,5 +1,7 @@
 <?php
 session_start();
+require_once "include/runtime_config.php";
+require_registration_access();
 require_once "include/db_config.php";
 
 if($_SERVER["REQUEST_METHOD"] == "POST"){
@@ -41,11 +43,11 @@ if($_SERVER["REQUEST_METHOD"] == "POST"){
         
         // Use default values for missing fields to avoid SQL errors if strict mode
         $s_kelamin = "";
-        $s_tgl_lahir = "0000-00-00";
+        $s_tgl_lahir = null;
         $s_phone = "";
         $s_alamat = "";
         $s_picture = "";
-        $s_status = "Active";
+        $s_status = "Aktif";
 
         $sql = "INSERT INTO data_siswa (s_uid, s_nama, s_nis, s_kontak_wali, s_nama_wali, s_kelas, s_jurusan, s_created, s_kelamin, s_tgl_lahir, s_phone, s_alamat, s_picture, s_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         $stmt = $pdo->prepare($sql);
@@ -55,7 +57,7 @@ if($_SERVER["REQUEST_METHOD"] == "POST"){
             $delStmt->execute([$uid]);
             $newId = $pdo->lastInsertId();
             $uname = strtolower(preg_replace('/\s+/', '', $nama)) . rand(100,999);
-            $upass = md5(($nis && trim($nis)!="") ? $nis : '123456');
+            $upass = password_hash(($nis && trim($nis)!="") ? $nis : '123456', PASSWORD_BCRYPT);
             $upict = '../../assets/img/operator_pict/user_default.png';
             $stmtU = $pdo->prepare("INSERT INTO users (name,email,username,password,picture,level_akses,id_siswa) VALUES (?,?,?,?,?,?,?)");
             $stmtU->execute([$nama,'',$uname,$upass,$upict,'User',$newId]);
@@ -70,9 +72,15 @@ if($_SERVER["REQUEST_METHOD"] == "POST"){
         $kontak_guru = trim($_POST['kontak_guru']);
         $tugas_tambahan = trim($_POST['tugas_tambahan']);
 
-        $sql = "INSERT INTO data_guru (g_uid, g_nama, g_nip, g_contact, g_tgs_tambahan) VALUES (?, ?, ?, ?, ?)";
+        $sql = "INSERT INTO data_guru
+                (g_uid, g_nama, g_nip, g_tgl_lahir, g_kelamin, g_jabatan,
+                 g_mail, g_contact, g_kompetensi, g_picture, g_tgs_tambahan, g_alamat)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         $stmt = $pdo->prepare($sql);
-        if($stmt->execute([$uid, $nama, $nip, $kontak_guru, $tugas_tambahan])){
+        if($stmt->execute([
+            $uid, $nama, $nip, '1970-01-01', '-', 'Guru', '', $kontak_guru,
+            '-', '../../assets/img/operator_pict/user_default.png', $tugas_tambahan, '-'
+        ])){
              // Remove from data_invalid if exists
              $delStmt = $pdo->prepare("DELETE FROM data_invalid WHERE uid = ?");
              $delStmt->execute([$uid]);

@@ -1,4 +1,7 @@
 <?php
+session_start();
+require_once "include/runtime_config.php";
+require_registration_access();
 require_once "include/db_config.php";
 
 if(isset($_POST['query']) && isset($_POST['type'])) {

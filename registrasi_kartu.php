@@ -1,4 +1,11 @@
 <?php
+session_start();
+require_once "include/runtime_config.php";
+require_registration_access();
+if (isset($_GET['token'])) {
+    header('Location: registrasi_kartu.php');
+    exit;
+}
 require_once "include/db_config.php";
 $sql = "SELECT * FROM system_config WHERE id =1";
 $system_conf = mysqli_query($GLOBALS["___mysqli_ston"],$sql);

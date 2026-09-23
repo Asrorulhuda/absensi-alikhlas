@@ -1,7 +1,7 @@
 <?php 
 session_start();
 date_default_timezone_set('Asia/Jakarta');
-if ( $_SESSION['akses']!= 'Admin'){// handling if dont'have session
+if (($_SESSION['akses'] ?? '') != 'Admin'){// handling if dont'have session
 
 	header('location:../../index'); 
 	exit();
@@ -99,8 +99,8 @@ if(isset($_POST["id"]) && !empty($_POST["id"])){
 	}
 } else {
 	// Check existence of id parameter before processing further
-	$_GET["id"] = trim($_GET["id"]);
-	if(isset($_GET["id"]) && !empty($_GET["id"])){
+	if(isset($_GET["id"]) && trim((string) $_GET["id"]) !== ''){
+		$_GET["id"] = trim((string) $_GET["id"]);
 		// Get URL parameter
 		$id =  trim($_GET["id"]);
 

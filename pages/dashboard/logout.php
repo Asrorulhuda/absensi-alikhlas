@@ -1,5 +1,6 @@
 <?php
 session_start();
+require_once "../../include/runtime_config.php";
 require_once "../../include/db_config.php";
 
 // Clear Remember Me Token
@@ -14,7 +15,7 @@ if (isset($_SESSION['id'])) {
 
 // Clear Cookie
 if (isset($_COOKIE['remember_me'])) {
-    setcookie('remember_me', '', time() - 3600, '/');
+    set_remember_me_cookie('', time() - 3600);
 }
 
 session_destroy();

@@ -1,6 +1,10 @@
 <?php
 session_start();
 date_default_timezone_set('Asia/Jakarta');
+if (($_SESSION['akses'] ?? '') !== 'Admin') {
+    http_response_code(403);
+    exit('Akses ditolak.');
+}
 require_once "../../include/db_config.php";
 
 echo "<h2>🔍 DIAGNOSTIC PRESENSI SYSTEM</h2>";

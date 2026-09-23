@@ -1,81 +1,85 @@
 <?php
 /**
- * Webhook Receiver for Automatic Git Deployment
- * 
- * This script listens for a POST request from a Git provider (like GitHub or GitLab)
- * and automatically pulls the latest changes for a specified branch.
+ * Signed GitHub webhook receiver for automatic, fast-forward-only deployment.
  */
+require_once __DIR__ . '/include/runtime_config.php';
 
-// --- KONFIGURASI ---
-// Ganti dengan secret token yang Anda atur di GitHub/GitLab webhook.
-// Ini sangat penting untuk keamanan.
-$secretToken = 'absensi_alikhlas_2023';
+header('Content-Type: application/json; charset=UTF-8');
 
-// Path absolut ke direktori Git Anda di server.
-$repoPath = __DIR__;
-
-// Branch yang ingin di-pull.
-$branch = 'main';
-
-// File untuk menyimpan log.
-$logFile = __DIR__ . '/deploy.log';
-
-// --- PROSES ---
-
-// Fungsi untuk mendapatkan semua header (karena getallheaders() tidak selalu ada)
-function getRequestHeaders() {
-    $headers = [];
-    foreach ($_SERVER as $key => $value) {
-        if (substr($key, 0, 5) <> 'HTTP_') {
-            continue;
-        }
-        $header = str_replace(' ', '-', ucwords(str_replace('_', ' ', strtolower(substr($key, 5)))));
-        $headers[$header] = $value;
-    }
-    return $headers;
-}
-
-$headers = getRequestHeaders();
-// Coba ambil signature dari berbagai kemungkinan key
-$signature = $_SERVER['HTTP_X_HUB_SIGNATURE_256'] 
-             ?? $_SERVER['X_HUB_SIGNATURE_256'] 
-             ?? $headers['X-Hub-Signature-256'] 
-             ?? '';
-
-// 1. Validasi Request
-// Proteksi: Abaikan jika dibuka di browser
-if (strpos($_SERVER['HTTP_USER_AGENT'] ?? '', 'GitHub-Hookshot') === false) {
-    http_response_code(200);
-    die("Webhook aktif. Silakan tes melalui GitHub Webhook Settings (jangan buka di browser).");
-}
-
-if (empty($signature)) {
-    // Log headers untuk debug jika signature tidak ditemukan
-    $debugHeaders = json_encode($headers);
-    file_put_contents($logFile, date('Y-m-d H:i:s') . " | ERROR: Signature missing. Headers received: $debugHeaders\n", FILE_APPEND);
-    
-    http_response_code(403);
-    die("Signature not found.");
+if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
+    http_response_code(405);
+    header('Allow: POST');
+    echo json_encode(['error' => 'Method not allowed']);
+    exit;
 }
 
 $payload = file_get_contents('php://input');
-$hash = 'sha256=' . hash_hmac('sha256', $payload, $secretToken, false);
-
-if (!hash_equals($hash, $signature)) {
-    file_put_contents($logFile, date('Y-m-d H:i:s') . " | ERROR: Signature mismatch.\n", FILE_APPEND);
+if ($payload === false || !verify_github_webhook($payload)) {
     http_response_code(403);
-    die("Signature mismatch.");
+    echo json_encode(['error' => 'Invalid signature']);
+    exit;
 }
 
-// 2. Jalankan Git Pull (Force Reset)
-// Kita gunakan fetch dan reset --hard untuk memaksa server mengikuti isi GitHub
-$command = "cd " . escapeshellarg($repoPath) . " && git fetch --all 2>&1 && git reset --hard origin/" . escapeshellarg($branch) . " 2>&1";
-exec($command, $output, $returnCode);
+$data = json_decode($payload, true);
+if (!is_array($data)) {
+    http_response_code(400);
+    echo json_encode(['error' => 'Invalid JSON payload']);
+    exit;
+}
 
-// 3. Simpan Log
-$status = ($returnCode === 0) ? "SUCCESS" : "FAILED";
-$logMessage = date('Y-m-d H:i:s') . " | $status | Return Code: $returnCode | Output: " . implode("\n", $output) . "\n";
-file_put_contents($logFile, $logMessage, FILE_APPEND | LOCK_EX);
+$branch = (string) app_config('deploy_branch', 'main');
+if (!preg_match('/^[A-Za-z0-9._\/-]+$/', $branch)) {
+    http_response_code(500);
+    echo json_encode(['error' => 'Invalid deployment branch configuration']);
+    exit;
+}
 
-echo "Deployment finished with code: $returnCode. See deploy.log for details.";
-?>
+if (($data['ref'] ?? '') !== 'refs/heads/' . $branch) {
+    echo json_encode(['status' => 'ignored', 'message' => 'Not the deployment branch']);
+    exit;
+}
+
+$lockHandle = fopen(__DIR__ . '/deploy.lock', 'c');
+if ($lockHandle === false || !flock($lockHandle, LOCK_EX | LOCK_NB)) {
+    http_response_code(409);
+    echo json_encode(['error' => 'Another deployment is running']);
+    exit;
+}
+
+$remoteBranch = 'origin/' . $branch;
+$phpCli = (string) app_config('php_cli', 'php');
+if (!function_exists('exec')) {
+    http_response_code(500);
+    echo json_encode(['error' => 'PHP exec() is disabled on this server']);
+    exit;
+}
+$commands = [
+    'git -C ' . escapeshellarg(__DIR__) . ' fetch origin ' . escapeshellarg($branch) . ' 2>&1',
+    'git -C ' . escapeshellarg(__DIR__) . ' merge --ff-only ' . escapeshellarg($remoteBranch) . ' 2>&1',
+    escapeshellarg($phpCli) . ' ' . escapeshellarg(__DIR__ . '/scripts/migrate.php') . ' 2>&1',
+];
+
+$output = [];
+$returnCode = 0;
+exec(implode(' && ', $commands), $output, $returnCode);
+
+$status = $returnCode === 0 ? 'SUCCESS' : 'FAILED';
+$logMessage = sprintf(
+    "%s | %s | branch=%s | code=%d\n%s\n",
+    date('Y-m-d H:i:s'),
+    $status,
+    $branch,
+    $returnCode,
+    implode("\n", $output)
+);
+file_put_contents(__DIR__ . '/deploy.log', $logMessage, FILE_APPEND | LOCK_EX);
+
+flock($lockHandle, LOCK_UN);
+fclose($lockHandle);
+
+http_response_code($returnCode === 0 ? 200 : 500);
+echo json_encode([
+    'status' => strtolower($status),
+    'code' => $returnCode,
+    'message' => $returnCode === 0 ? 'Deployment and migrations completed' : 'Deployment failed; check deploy.log',
+]);

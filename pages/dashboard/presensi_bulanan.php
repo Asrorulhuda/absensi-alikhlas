@@ -1,7 +1,7 @@
 <?php 
 	date_default_timezone_set('Asia/Jakarta');
 	session_start();
-	if ( $_SESSION['akses']!= 'Admin'){// handling if dont'have session
+	if (($_SESSION['akses'] ?? '') != 'Admin'){// handling if dont'have session
 
 		header('location:../../index'); 
 		exit();
@@ -51,7 +51,7 @@
 		$month = date("m",$time);
 		$month_full=date("F",$time);
 		$year= date("Y",$time);
-		if ($set_bulan = $bulan_now){
+		if ($set_bulan == $bulan_now){
 			$total_hari_sekolah = countWorkingDaysUntilToday($year, $month);
 		}else{
 			$workingDaysCount = countWorkingDaysInMonth($year, $month);
@@ -100,15 +100,14 @@ function fetch_data(){
 	$jumtgl = cal_days_in_month(CAL_GREGORIAN, $bulan, $tahun); // jumlah tanggal
 
 	// Ambil daftar siswa sesuai filter
-	$sql = "SELECT siswa.s_uid, siswa.s_nama, s_kelas, j_short
+	$sql = "SELECT DISTINCT siswa.s_uid, siswa.s_nama, s_kelas, j_short
 			FROM data_siswa AS siswa, opsi_jurusan
 			WHERE ".$where_con."
-			GROUP BY siswa.s_uid
 			ORDER BY siswa.s_nama";
 	$result = mysqli_query($link, $sql); 
 	$no = 1;	 
 
-	while($row = mysqli_fetch_array($result)){   
+	while($result && ($row = mysqli_fetch_array($result))){
 		$output .= '<tr style="text-align:center;">';
 		$output .= '<td>'.$no.'</td>';
 		$output .= '<td style="text-align:left;">'.$row["s_nama"].'</td>';
@@ -208,7 +207,7 @@ function fetch_data(){
 		$sql_guru = "SELECT g.g_uid, g.g_nama FROM data_guru g ORDER BY g.g_nama";
 		$result_guru = mysqli_query($link, $sql_guru); 
 		
-		while($row = mysqli_fetch_array($result_guru)){   
+		while($result_guru && ($row = mysqli_fetch_array($result_guru))){
 		$output .= '<tr style="text-align:center;">';
 		$output .= '<td>'.$no.'</td>';
 		$output .= '<td style="text-align:left;">'.$row["g_nama"].'</td>';

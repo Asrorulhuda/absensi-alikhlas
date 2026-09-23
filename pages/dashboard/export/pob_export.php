@@ -10,8 +10,8 @@
 	
 	$tanggal = date('F jS, Y');
 	// Check existence of id parameter before processing further
-	$_GET["id_venue"] = trim($_GET["id_venue"]);
-	if(isset($_GET["id_venue"]) && !empty($_GET["id_venue"])){
+	if(isset($_GET["id_venue"]) && trim((string) $_GET["id_venue"]) !== ''){
+		$_GET["id_venue"] = trim((string) $_GET["id_venue"]);
 		$id_venue = $_GET["id_venue"];
 		$sql = "SELECT * FROM room WHERE r_id ='$id_venue'";
 		$s_venue = mysqli_query($GLOBALS["___mysqli_ston"], $sql);

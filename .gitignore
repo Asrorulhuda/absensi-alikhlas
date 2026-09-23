@@ -1,12 +1,17 @@
 # Sensitive files
 include/db_config.php
+include/production_config.php
 *.sql
 db/*.sql
+!database/migrations/
+!database/migrations/*.sql
 
 # Error & deploy logs
 error_log
 deploy.log
 *.log
+*.lock
+update_available.json
 
 # FTP quota
 .ftpquota

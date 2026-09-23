@@ -95,7 +95,7 @@ require_once "include/db_config.php";
 						  <?php
 								//$division = $d_member['p_division'];
 								$sql_member = mysqli_query($GLOBALS["___mysqli_ston"], "SELECT * FROM personnel");
-								while($data_member = mysqli_fetch_assoc($sql_member)){
+								while($sql_member && ($data_member = mysqli_fetch_assoc($sql_member))){
 									echo '<option value="'.$data_member['p_uid'].'">'.$data_member['p_name'].'  ['.$data_member['p_uid'].']</option>';
 								}
 							?>
@@ -108,7 +108,7 @@ require_once "include/db_config.php";
 							  
 							  
 								$sql_deveui = mysqli_query($GLOBALS["___mysqli_ston"], "SELECT r_name,d_type,d_eui FROM reader_devices,room WHERE d_location=r_id");
-								while($data_deveui = mysqli_fetch_assoc($sql_deveui)){
+								while($sql_deveui && ($data_deveui = mysqli_fetch_assoc($sql_deveui))){
 									echo '<option value="'.$data_deveui['d_eui'].'">'.$data_deveui['r_name'].'-'.$data_deveui['d_type'].'    ['.$data_deveui['d_eui'].']</option>';
 								}
 								?>

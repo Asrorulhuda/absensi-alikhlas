@@ -1,7 +1,7 @@
 <?php 
 date_default_timezone_set('Asia/Jakarta');
 session_start();
-if ( $_SESSION['akses']!= 'Admin'){// handling if dont'have session
+if (($_SESSION['akses'] ?? '') != 'Admin'){// handling if dont'have session
 
 	header('location:../../index'); 
 	exit();
@@ -90,8 +90,8 @@ if(isset($_POST["s_id"]) && !empty($_POST["s_id"])){
         header("location: siswa");
     }
 } else {
-    $_GET["id_siswa"] = trim($_GET["id_siswa"]);
-    if(isset($_GET["id_siswa"]) && !empty($_GET["id_siswa"])){
+    if(isset($_GET["id_siswa"]) && trim((string) $_GET["id_siswa"]) !== ''){
+        $_GET["id_siswa"] = trim((string) $_GET["id_siswa"]);
         $id_siswa =  base64_decode($_GET["id_siswa"]);
 		$sql = "SELECT * FROM data_siswa WHERE s_id='$id_siswa'";
 		$s_siswa = mysqli_query($GLOBALS["___mysqli_ston"], $sql);
