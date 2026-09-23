@@ -50,17 +50,34 @@ $total_kelas = mysqli_fetch_assoc($q_total_kelas)['cnt'] ?? 0;
 $q_total_wa = mysqli_query($GLOBALS["___mysqli_ston"], "SELECT COUNT(*) as cnt FROM wa_queue");
 $total_wa = mysqli_fetch_assoc($q_total_wa)['cnt'] ?? 0;
 
-// --- 6. Today's Combined Attendance Stats ---
-// Hadir
-$q_today_hadir = mysqli_query($GLOBALS["___mysqli_ston"], "SELECT COUNT(DISTINCT uid) as cnt FROM data_absen WHERE tanggal = '$today' AND (keterangan IN ('HADIR', 'COMPLETE') OR status IN ('IN', 'OUT', 'KEGIATAN')) AND keterangan NOT IN ('SAKIT', 'IZIN')");
-$today_hadir = mysqli_fetch_assoc($q_today_hadir)['cnt'] ?? 0;
+// --- 6. Today's Attendance Stats ---
+// Hadir siswa dan guru dihitung terpisah untuk live monitor.
+$q_today_siswa_hadir = mysqli_query($GLOBALS["___mysqli_ston"], "
+    SELECT COUNT(DISTINCT a.uid) AS cnt
+    FROM data_absen a
+    INNER JOIN data_siswa s ON s.s_uid = a.uid
+    WHERE a.tanggal = '$today'
+      AND (a.keterangan IN ('HADIR', 'COMPLETE') OR a.status IN ('IN', 'OUT', 'KEGIATAN'))
+      AND a.keterangan NOT IN ('SAKIT', 'IZIN')
+");
+$today_siswa_hadir = mysqli_fetch_assoc($q_today_siswa_hadir)['cnt'] ?? 0;
+
+$q_today_guru_hadir = mysqli_query($GLOBALS["___mysqli_ston"], "
+    SELECT COUNT(DISTINCT a.uid) AS cnt
+    FROM data_absen a
+    INNER JOIN data_guru g ON g.g_uid = a.uid
+    WHERE a.tanggal = '$today'
+      AND (a.keterangan IN ('HADIR', 'COMPLETE') OR a.status IN ('IN', 'OUT', 'KEGIATAN'))
+      AND a.keterangan NOT IN ('SAKIT', 'IZIN')
+");
+$today_guru_hadir = mysqli_fetch_assoc($q_today_guru_hadir)['cnt'] ?? 0;
 
 // Izin
-$q_today_izin = mysqli_query($GLOBALS["___mysqli_ston"], "SELECT COUNT(DISTINCT uid) as cnt FROM data_absen WHERE tanggal = '$today' AND keterangan = 'IZIN'");
+$q_today_izin = mysqli_query($GLOBALS["___mysqli_ston"], "SELECT COUNT(DISTINCT a.uid) as cnt FROM data_absen a INNER JOIN data_siswa s ON s.s_uid = a.uid WHERE a.tanggal = '$today' AND a.keterangan = 'IZIN'");
 $today_izin = mysqli_fetch_assoc($q_today_izin)['cnt'] ?? 0;
 
 // Sakit
-$q_today_sakit = mysqli_query($GLOBALS["___mysqli_ston"], "SELECT COUNT(DISTINCT uid) as cnt FROM data_absen WHERE tanggal = '$today' AND keterangan = 'SAKIT'");
+$q_today_sakit = mysqli_query($GLOBALS["___mysqli_ston"], "SELECT COUNT(DISTINCT a.uid) as cnt FROM data_absen a INNER JOIN data_siswa s ON s.s_uid = a.uid WHERE a.tanggal = '$today' AND a.keterangan = 'SAKIT'");
 $today_sakit = mysqli_fetch_assoc($q_today_sakit)['cnt'] ?? 0;
 
 // Alpha
@@ -143,34 +160,44 @@ if ($q_guru && mysqli_num_rows($q_guru) > 0) {
         animation: pulse-slow 8s ease-in-out infinite;
     }
 
-    /* Override last-item styles for the hero widget so they look readable on a white card */
-    #hero-last-scans .last-item {
+    /* Live monitor rows */
+    .hero-scan-list .last-item {
         border-bottom: 1px solid #f1f5f9 !important;
         color: #334155 !important;
         padding: 10px 0 !important;
         background: transparent !important;
     }
-    #hero-last-scans .last-item div {
+    .hero-scan-list .last-item:last-child {
+        border-bottom: 0 !important;
+    }
+    .hero-scan-list .last-item div {
         color: #334155 !important;
     }
-    #hero-last-scans .last-item div > div {
+    .hero-scan-list .last-item div > div {
         font-weight: 600 !important;
         color: #1e293b !important;
         font-size: 13px !important;
     }
-    #hero-last-scans .last-item div > div:last-child {
+    .hero-scan-list .last-item div > div:last-child {
         color: #64748b !important;
         font-size: 10px !important;
     }
-    #hero-last-scans .last-item span {
+    .hero-scan-list .last-item span {
         color: #475569 !important;
     }
-    #hero-last-scans .last-item span[style*="background"] {
+    .hero-scan-list .last-item span[style*="background"] {
         color: #ffffff !important;
         font-size: 10px !important;
         padding: 2px 6px !important;
         border-radius: 4px !important;
         font-weight: bold !important;
+    }
+    .monitor-new-scan {
+        animation: monitorGlow 1.2s ease-out;
+    }
+    @keyframes monitorGlow {
+        0% { box-shadow: 0 0 0 0 rgba(37, 99, 235, .35); }
+        100% { box-shadow: 0 0 0 14px rgba(37, 99, 235, 0); }
     }
   </style>
 </head>
@@ -250,27 +277,36 @@ if ($q_guru && mysqli_num_rows($q_guru) > 0) {
       </div>
 
       <!-- Right Mockup UI Illustration (Real-time Scan Monitor) -->
-      <div class="relative w-full max-w-lg mx-auto flex items-center justify-center py-6 animate__animated animate__fadeInRight">
+      <div class="relative w-full max-w-xl mx-auto flex items-center justify-center pt-20 pb-6 animate__animated animate__fadeInRight">
         
         <!-- Soft Blurry Circles -->
         <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 rounded-full bg-gradient-to-tr from-blue-200/50 to-indigo-200/50 blur-3xl opacity-60"></div>
         
         <!-- Main Live Card -->
-        <div class="bg-white rounded-3xl border border-slate-100 shadow-2xl shadow-slate-200/60 p-6 w-full max-w-sm relative z-10 animate-float">
+        <div id="live-monitor-card" class="bg-white rounded-3xl border border-slate-100 shadow-2xl shadow-slate-200/60 p-6 w-full max-w-xl relative z-10 animate-float">
           
           <!-- Card Header -->
-          <div class="border-b border-slate-100 pb-4 mb-4 text-center">
-            <span class="font-extrabold text-slate-800 text-xs block mb-1">Live Monitor Presensi</span>
-            <div class="flex items-center justify-center gap-2 mt-2">
-              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span>
-              <span id="live-clock" class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Loading clock...</span>
+          <div class="border-b border-slate-100 pb-4 mb-4">
+            <div class="flex items-center justify-between gap-3">
+              <div>
+                <span class="font-extrabold text-slate-800 text-xs block mb-1">Live Monitor Presensi</span>
+                <div class="flex items-center gap-2 mt-2">
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span>
+                  <span id="live-clock" class="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Loading clock...</span>
+                </div>
+              </div>
+              <button id="enable-monitor-audio" type="button"
+                      class="shrink-0 inline-flex items-center gap-1.5 rounded-xl bg-blue-50 px-3 py-2 text-[9px] font-extrabold text-blue-700 border border-blue-100 hover:bg-blue-100 transition-colors">
+                <i class="material-icons-round text-sm">volume_up</i>
+                <span>Aktifkan Suara</span>
+              </button>
             </div>
           </div>
 
           <!-- Status stats boxes -->
           <div class="grid grid-cols-3 gap-2 text-center mb-6">
             <div class="bg-emerald-50 border border-emerald-100 text-emerald-600 py-2 rounded-xl">
-              <span id="hero-stats-hadir" class="block text-xs font-extrabold"><?php echo $today_hadir; ?></span>
+              <span id="hero-stats-hadir" class="block text-xs font-extrabold"><?php echo $today_siswa_hadir; ?></span>
               <span class="block text-[8px] font-bold uppercase tracking-wider opacity-75">Hadir</span>
             </div>
             <div class="bg-amber-50 border border-amber-100 text-amber-600 py-2 rounded-xl">
@@ -283,12 +319,35 @@ if ($q_guru && mysqli_num_rows($q_guru) > 0) {
             </div>
           </div>
 
-          <!-- Student Rows (Dynamically Polled) -->
-          <div id="hero-last-scans" class="space-y-3 min-h-[150px]">
-            <div class="text-center py-8 text-slate-400 text-xs flex flex-col items-center justify-center gap-2">
-              <i class="material-icons-round animate-spin">sync</i>
-              <span>Menghubungkan monitor...</span>
-            </div>
+          <!-- Separate student and teacher monitors -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <section id="student-monitor-card" class="rounded-2xl border border-blue-100 bg-blue-50/40 p-3">
+              <div class="flex items-center justify-between border-b border-blue-100 pb-2 mb-1">
+                <span class="inline-flex items-center gap-1.5 text-[10px] font-extrabold text-blue-800 uppercase tracking-wider">
+                  <i class="material-icons-round text-sm">school</i> Monitor Siswa
+                </span>
+                <span class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
+              </div>
+              <div id="hero-student-scans" class="hero-scan-list min-h-[155px]">
+                <div class="text-center py-8 text-slate-400 text-xs">
+                  <i class="material-icons-round animate-spin">sync</i>
+                </div>
+              </div>
+            </section>
+
+            <section id="teacher-monitor-card" class="rounded-2xl border border-violet-100 bg-violet-50/40 p-3">
+              <div class="flex items-center justify-between border-b border-violet-100 pb-2 mb-1">
+                <span class="inline-flex items-center gap-1.5 text-[10px] font-extrabold text-violet-800 uppercase tracking-wider">
+                  <i class="material-icons-round text-sm">badge</i> Monitor Guru
+                </span>
+                <span class="w-2 h-2 rounded-full bg-violet-500 animate-pulse"></span>
+              </div>
+              <div id="hero-teacher-scans" class="hero-scan-list min-h-[155px]">
+                <div class="text-center py-8 text-slate-400 text-xs">
+                  <i class="material-icons-round animate-spin">sync</i>
+                </div>
+              </div>
+            </section>
           </div>
 
           <!-- Bottom Tap Card box (Simulation Button) -->
@@ -305,11 +364,18 @@ if ($q_guru && mysqli_num_rows($q_guru) > 0) {
 
         </div>
 
-        <!-- Floating Badge Top Right -->
-        <div class="absolute -top-2 -right-2 bg-white rounded-2xl shadow-xl px-4 py-3 border border-slate-100 flex items-center gap-2 z-20 animate-pulse-slow">
-          <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-          <span id="hero-absen-count" class="text-[11px] font-extrabold text-slate-800"><?php echo $today_hadir; ?> siswa</span>
-          <span class="text-[11px] text-slate-400 font-medium">absen hari ini</span>
+        <!-- Floating attendance badges -->
+        <div class="absolute top-3 left-0 right-0 px-2 flex items-center justify-between gap-2 z-20 animate-pulse-slow">
+          <div class="bg-white rounded-2xl shadow-xl px-3 sm:px-4 py-3 border border-blue-100 flex items-center gap-2 min-w-0">
+            <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+            <span id="hero-student-count" class="text-[11px] font-extrabold text-slate-800"><?php echo $today_siswa_hadir; ?> siswa</span>
+            <span class="hidden sm:inline text-[10px] text-slate-400 font-medium">hadir hari ini</span>
+          </div>
+          <div class="bg-white rounded-2xl shadow-xl px-3 sm:px-4 py-3 border border-violet-100 flex items-center gap-2 min-w-0">
+            <span class="w-2.5 h-2.5 rounded-full bg-violet-500"></span>
+            <span id="hero-teacher-count" class="text-[11px] font-extrabold text-slate-800"><?php echo $today_guru_hadir; ?> guru</span>
+            <span class="hidden sm:inline text-[10px] text-slate-400 font-medium">hadir hari ini</span>
+          </div>
         </div>
 
         <!-- Floating Badge Bottom Left -->
@@ -812,7 +878,14 @@ if ($q_guru && mysqli_num_rows($q_guru) > 0) {
   <script src="https://code.jquery.com/jquery-3.6.3.min.js" crossorigin="anonymous"></script>
 
   <script>
-    let lastScanId = null;
+    const lastScanKeys = { siswa: null, guru: null };
+    const scanMonitorInitialized = { siswa: false, guru: false };
+    let lastCardEventKey = null;
+    let cardEventMonitorInitialized = false;
+    const speechQueue = [];
+    let monitorAudioEnabled = false;
+    let monitorAudioContext = null;
+    let speechInProgress = false;
 
     // --- 1. Real-time Clock ---
     function updateClock() {
@@ -831,17 +904,24 @@ if ($q_guru && mysqli_num_rows($q_guru) > 0) {
       $('#live-clock').text(`${dayName}, ${date} ${monthName} ${year} ${hours}:${minutes}:${seconds}`);
     }
     
-    // --- 2. Live attendance scan list ---
+    // --- 2. Separate student and teacher live monitors ---
     function loadHeroScans() {
-      $('#hero-last-scans').load('pages/dashboard/view/last_scan.php', function(response, status) {
-        if (status !== 'success') {
-          $('#hero-last-scans').html(`
+      const monitors = [
+        { type: 'siswa', target: '#hero-student-scans' },
+        { type: 'guru', target: '#hero-teacher-scans' }
+      ];
+
+      monitors.forEach(function(monitor) {
+        $(monitor.target).load('pages/dashboard/view/last_scan.php?type=' + monitor.type, function(response, status) {
+          if (status !== 'success') {
+            $(monitor.target).html(`
             <div class="text-center py-8 text-slate-400 text-xs">
               <span class="material-icons-round text-lg opacity-30 block">hourglass_empty</span>
-              <span class="block mt-1">Belum ada tap hari ini.</span>
+              <span class="block mt-1">Monitor belum dapat dimuat.</span>
             </div>
-          `);
-        }
+            `);
+          }
+        });
       });
     }
 
@@ -852,8 +932,10 @@ if ($q_guru && mysqli_num_rows($q_guru) > 0) {
           let totalHadir = 0;
           let totalIzin = 0;
           let totalSakit = 0;
+          let hasStudentStats = false;
           
-          if(data.siswa) {
+          if(Array.isArray(data.siswa)) {
+            hasStudentStats = true;
             data.siswa.forEach(function(item) {
               totalHadir += parseInt(item.hadir || 0);
               totalIzin += parseInt(item.izin || 0);
@@ -861,44 +943,93 @@ if ($q_guru && mysqli_num_rows($q_guru) > 0) {
             });
           }
           
-          // Fallbacks to default database values if no today scans yet
-          let displayHadir = totalHadir > 0 ? totalHadir : <?php echo $today_hadir; ?>;
-          let displayIzin = (totalIzin + totalSakit) > 0 ? (totalIzin + totalSakit) : <?php echo ($today_izin + $today_sakit); ?>;
+          const displayHadir = hasStudentStats ? totalHadir : <?php echo $today_siswa_hadir; ?>;
+          const displayIzin = hasStudentStats ? (totalIzin + totalSakit) : <?php echo ($today_izin + $today_sakit); ?>;
+          const displayGuru = data.guru ? parseInt(data.guru.hadir || 0) : <?php echo $today_guru_hadir; ?>;
           
-          $('#hero-absen-count').text(displayHadir + ' siswa');
+          $('#hero-student-count').text(displayHadir + ' siswa');
+          $('#hero-teacher-count').text(displayGuru + ' guru');
           $('#hero-stats-hadir').text(displayHadir);
           $('#hero-stats-izin').text(displayIzin);
         }
       });
     }
 
-    // --- 4. Detect New Tap for Beep and TTS ---
+    // --- 4. Detect new taps independently for students and teachers ---
     function checkNewTap() {
-      $.getJSON('pages/dashboard/view/last_scan.php?meta=1', function(data) {
-        if (data && data.id) {
-          if (lastScanId !== null && data.id !== lastScanId) {
-            // New tap registered!
-            playNotificationSound();
-            speakAttendance(data.who);
-            // Instantly refresh list and counters
-            loadHeroScans();
-            updateDynamicStats();
+      ['siswa', 'guru'].forEach(function(type) {
+        $.getJSON('pages/dashboard/view/last_scan.php?meta=1&type=' + type, function(data) {
+          if (!data) return;
+
+          // Permintaan pertama hanya menetapkan posisi awal. Flag terpisah
+          // memastikan tap pertama setelah kondisi database kosong tetap diumumkan.
+          if (!scanMonitorInitialized[type]) {
+            lastScanKeys[type] = data.event_key || null;
+            scanMonitorInitialized[type] = true;
+            return;
           }
-          lastScanId = data.id;
+
+          if (data.event_key && data.event_key !== lastScanKeys[type]) {
+              const cardSelector = type === 'guru' ? '#teacher-monitor-card' : '#student-monitor-card';
+              $(cardSelector).removeClass('monitor-new-scan');
+              void document.querySelector(cardSelector).offsetWidth;
+              $(cardSelector).addClass('monitor-new-scan');
+
+              queueAttendanceAnnouncement(data);
+              loadHeroScans();
+              updateDynamicStats();
+          }
+          lastScanKeys[type] = data.event_key || null;
+        });
+      });
+    }
+
+    // Status yang ditolak tidak masuk ke riwayat absensi, jadi dibaca dari
+    // event kartu terakhir. Status IN/OUT tetap ditangani checkNewTap().
+    function checkExceptionalCardEvent() {
+      $.getJSON('pages/dashboard/view/latest_card_event.php', function(data) {
+        if (!data) return;
+
+        if (!cardEventMonitorInitialized) {
+          lastCardEventKey = data.event_key || null;
+          cardEventMonitorInitialized = true;
+          return;
         }
+
+        const eventKey = data.event_key || null;
+        if (!eventKey || eventKey === lastCardEventKey) return;
+        lastCardEventKey = eventKey;
+
+        const exceptionalStatuses = ['NA', 'INVALID', 'IN2', 'LOCKED'];
+        const status = String(data.status || '').toUpperCase();
+        if (!exceptionalStatuses.includes(status)) return;
+
+        $('#live-monitor-card').removeClass('monitor-new-scan');
+        const monitorCard = document.querySelector('#live-monitor-card');
+        if (monitorCard) void monitorCard.offsetWidth;
+        $('#live-monitor-card').addClass('monitor-new-scan');
+
+        queueAttendanceAnnouncement(data);
+        loadHeroScans();
       });
     }
 
     function playNotificationSound() {
+      if (!monitorAudioEnabled) return;
       try {
-        let context = new (window.AudioContext || window.webkitAudioContext)();
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) return;
+        if (!monitorAudioContext) monitorAudioContext = new AudioContextClass();
+        if (monitorAudioContext.state === 'suspended') monitorAudioContext.resume();
+
+        let context = monitorAudioContext;
         let oscillator = context.createOscillator();
         let gain = context.createGain();
         oscillator.connect(gain);
         gain.connect(context.destination);
         oscillator.type = 'sine';
-        oscillator.frequency.value = 880; // High pitch A note
-        gain.gain.setValueAtTime(0.1, context.currentTime);
+        oscillator.frequency.value = 880;
+        gain.gain.setValueAtTime(0.12, context.currentTime);
         gain.gain.exponentialRampToValueAtTime(0.01, context.currentTime + 0.35);
         oscillator.start(context.currentTime);
         oscillator.stop(context.currentTime + 0.35);
@@ -907,21 +1038,138 @@ if ($q_guru && mysqli_num_rows($q_guru) > 0) {
       }
     }
 
-    function speakAttendance(name) {
-      if ('speechSynthesis' in window) {
-        // Stop current speech to avoid stacking
-        window.speechSynthesis.cancel();
-        let utterance = new SpeechSynthesisUtterance(name);
-        utterance.lang = 'id-ID';
-        utterance.rate = 1.0;
-        window.speechSynthesis.speak(utterance);
+    function attendanceSpeech(data) {
+      const name = String(data.who || 'Pengguna');
+      const status = String(data.status || '').toUpperCase();
+      const role = String(data.role || 'siswa').toLowerCase();
+
+      if (status === 'IN') {
+        return role === 'guru'
+          ? `Selamat datang ${name}. Semangat mengajarnya.`
+          : `Selamat datang ${name}. Semangat belajarnya.`;
       }
+      if (status === 'OUT') {
+        return `Terima kasih ${name}. Hati-hati di jalan.`;
+      }
+      if (status === 'NA') {
+        return role === 'unknown'
+          ? 'Jadwal presensi belum dimulai. Silakan kembali sesuai jadwal.'
+          : `${name}. Jadwal presensi belum dimulai. Silakan kembali sesuai jadwal.`;
+      }
+      if (status === 'INVALID') {
+        return 'Kartu tidak terdaftar. Silakan hubungi admin.';
+      }
+      if (status === 'IN2') {
+        return `${name}. Anda sudah melakukan presensi masuk hari ini.`;
+      }
+      if (status === 'LOCKED') {
+        return role === 'unknown'
+          ? 'Presensi belum tersedia atau sudah selesai. Silakan cek jadwal.'
+          : `${name}. Presensi belum tersedia atau sudah selesai. Silakan cek jadwal.`;
+      }
+      if (status === 'KEGIATAN') {
+        return `Kehadiran ${name} pada kegiatan berhasil dicatat.`;
+      }
+      return `${name}. Presensi dengan status ${status} berhasil dicatat.`;
+    }
+
+    function queueAttendanceAnnouncement(data) {
+      if (!monitorAudioEnabled) return;
+      speechQueue.push(attendanceSpeech(data));
+      processSpeechQueue();
+    }
+
+    function processSpeechQueue() {
+      if (speechInProgress || speechQueue.length === 0 || !monitorAudioEnabled) return;
+
+      const message = speechQueue.shift();
+      speechInProgress = true;
+      playNotificationSound();
+
+      if (!('speechSynthesis' in window)) {
+        setTimeout(function() {
+          speechInProgress = false;
+          processSpeechQueue();
+        }, 500);
+        return;
+      }
+
+      setTimeout(function() {
+        const utterance = new SpeechSynthesisUtterance(message);
+        const indonesianVoice = window.speechSynthesis.getVoices().find(function(voice) {
+          return String(voice.lang).toLowerCase().startsWith('id');
+        });
+        if (indonesianVoice) utterance.voice = indonesianVoice;
+        utterance.lang = 'id-ID';
+        utterance.rate = 0.95;
+        utterance.pitch = 1;
+        utterance.onend = utterance.onerror = function() {
+          speechInProgress = false;
+          processSpeechQueue();
+        };
+        window.speechSynthesis.speak(utterance);
+      }, 400);
+    }
+
+    function saveMonitorAudioPreference() {
+      try {
+        localStorage.setItem('attendanceMonitorAudio', 'enabled');
+      } catch (error) {
+        console.warn('Preferensi suara tidak dapat disimpan:', error);
+      }
+    }
+
+    function hasMonitorAudioPreference() {
+      try {
+        return localStorage.getItem('attendanceMonitorAudio') === 'enabled';
+      } catch (error) {
+        return false;
+      }
+    }
+
+    function unlockMonitorAudio() {
+      if (monitorAudioContext && monitorAudioContext.state === 'suspended') {
+        monitorAudioContext.resume().catch(function() {});
+      }
+    }
+
+    function enableMonitorAudio(announceActivation = true) {
+      monitorAudioEnabled = true;
+      saveMonitorAudioPreference();
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (AudioContextClass && !monitorAudioContext) {
+        monitorAudioContext = new AudioContextClass();
+      }
+      unlockMonitorAudio();
+
+      $('#enable-monitor-audio')
+        .removeClass('bg-blue-50 text-blue-700 border-blue-100')
+        .addClass('bg-emerald-50 text-emerald-700 border-emerald-100')
+        .find('span').text(announceActivation ? 'Suara Aktif' : 'Suara Otomatis');
+
+      if (announceActivation) {
+        // Ucapan ini sekaligus mengonfirmasi bahwa izin audio browser berhasil.
+        speechQueue.push('Suara monitor presensi aktif.');
+        processSpeechQueue();
+      }
+    }
+
+    function restoreMonitorAudioPreference() {
+      if (!hasMonitorAudioPreference()) return;
+      enableMonitorAudio(false);
+
+      // Apabila autoplay ditahan browser, interaksi pertama di mana pun pada
+      // halaman akan membuka audio tanpa perlu tombol khusus.
+      document.addEventListener('pointerdown', unlockMonitorAudio, { once: true, capture: true });
+      document.addEventListener('keydown', unlockMonitorAudio, { once: true, capture: true });
     }
 
     // --- 5. Simulation Modal Controls ---
     $(document).ready(function() {
       updateClock();
       setInterval(updateClock, 1000);
+
+      restoreMonitorAudioPreference();
       
       loadHeroScans();
       setInterval(loadHeroScans, 2000);
@@ -929,13 +1177,16 @@ if ($q_guru && mysqli_num_rows($q_guru) > 0) {
       updateDynamicStats();
       setInterval(updateDynamicStats, 4000);
       
-      // Init last scan ID for new tap listener
-      $.getJSON('pages/dashboard/view/last_scan.php?meta=1', function(data) {
-        if (data && data.id) {
-          lastScanId = data.id;
-        }
-      });
+      // Initial polling stores the latest event without announcing old taps.
+      checkNewTap();
       setInterval(checkNewTap, 1500);
+
+      checkExceptionalCardEvent();
+      setInterval(checkExceptionalCardEvent, 1000);
+
+      $('#enable-monitor-audio').on('click', function() {
+        enableMonitorAudio(true);
+      });
 
       // Modal open/close
       $('#sim-tap-btn').click(function() {
@@ -955,6 +1206,11 @@ if ($q_guru && mysqli_num_rows($q_guru) > 0) {
 
       // Handle Simulated Tap Submission
       $('#sim-submit-btn').click(function() {
+        // Klik tombol merupakan interaksi pengguna yang diizinkan browser untuk
+        // membuka AudioContext dan speech synthesis.
+        unlockMonitorAudio();
+        if (!monitorAudioEnabled) enableMonitorAudio(true);
+
         let uid = $('#sim_uid').val();
         let dev_eui = $('#sim_dev_eui').val();
         

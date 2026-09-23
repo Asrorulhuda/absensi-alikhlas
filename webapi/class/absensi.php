@@ -1,6 +1,10 @@
 <?php
 date_default_timezone_set('Asia/Jakarta');
 class Absensi{
+	private const GURU_CHECKIN_OPEN_BEFORE_SECONDS = 3600;
+	private const GURU_CHECKOUT_OPEN_BEFORE_SECONDS = 3600;
+	private const GURU_CHECKOUT_LATE_AFTER_SECONDS = 900;
+
 	// Connection
 	private $conn;
 
@@ -46,67 +50,201 @@ class Absensi{
 		$this->conn = $db;
 	}
 
-	// =========================================================
-	// FUNGSI BARU: Ambil jadwal guru dari tabel guru_schedules
-	// Jika tabel tidak ada / tidak ada jadwal, gunakan jam default
-	// =========================================================
+	/**
+	 * Ambil jadwal guru dengan urutan yang tegas:
+	 * jadwal guru -> jadwal umum -> system_config -> nilai aman bawaan.
+	 */
 	private function getGuruSchedule(){
 		$hari_indo = $this->getIndoDay(date('l'));
+		$schedule = null;
 
-		// Coba ambil dari tabel guru_schedules jika ada
 		try {
-			$sqlGuru = "SELECT * FROM " . $this->db_guru_schedules . " 
-						WHERE (g_uid = :uid OR g_uid IS NULL OR g_uid = '')
-						AND day_name = :hari 
-						ORDER BY g_uid DESC 
-						LIMIT 1";
-			$stmtGuru = $this->conn->prepare($sqlGuru);
-			$stmtGuru->bindParam(":uid", $this->uid);
-			$stmtGuru->bindParam(":hari", $hari_indo);
-			$stmtGuru->execute();
+			$stmtGuru = $this->conn->prepare(
+				"SELECT start_time, end_time, entry_limit
+				 FROM " . $this->db_guru_schedules . "
+				 WHERE g_uid = :uid AND day_name = :hari
+				 ORDER BY id DESC LIMIT 1"
+			);
+			$stmtGuru->execute([':uid' => $this->uid, ':hari' => $hari_indo]);
+			$schedule = $stmtGuru->fetch(PDO::FETCH_ASSOC) ?: null;
 
-			if($stmtGuru->rowCount() > 0){
-				$guruRow = $stmtGuru->fetch(PDO::FETCH_ASSOC);
-				$this->jm_masuk = $guruRow['start_time'];
-				$this->jm_pulang = $guruRow['end_time'];
-				$this->attendance_type = "KBM";
-				if(!empty($guruRow['entry_limit'])){
-					$this->batas_absen_masuk = $guruRow['entry_limit'];
+			if ($schedule === null) {
+				$stmtDefault = $this->conn->prepare(
+					"SELECT start_time, end_time, entry_limit
+					 FROM " . $this->db_guru_schedules . "
+					 WHERE (g_uid IS NULL OR g_uid = '') AND day_name = :hari
+					 ORDER BY id DESC LIMIT 1"
+				);
+				$stmtDefault->execute([':hari' => $hari_indo]);
+				$schedule = $stmtDefault->fetch(PDO::FETCH_ASSOC) ?: null;
+			}
+		} catch (Throwable $exception) {
+			error_log('Guru schedule lookup failed: ' . $exception->getMessage());
+		}
+
+		if ($schedule === null) {
+			try {
+				$stmtConfig = $this->conn->query(
+					"SELECT jm_masuk AS start_time, jm_pulang AS end_time,
+					        batas_absen_masuk AS entry_limit
+					 FROM " . $this->db_system_config . " WHERE id = 1 LIMIT 1"
+				);
+				$schedule = $stmtConfig->fetch(PDO::FETCH_ASSOC) ?: null;
+			} catch (Throwable $exception) {
+				error_log('Guru schedule fallback failed: ' . $exception->getMessage());
+			}
+		}
+
+		$startTime = !empty($schedule['start_time']) ? $schedule['start_time'] : '07:00:00';
+		$endTime = !empty($schedule['end_time']) ? $schedule['end_time'] : '16:00:00';
+		$entryLimit = !empty($schedule['entry_limit'])
+			? $schedule['entry_limit']
+			: date('H:i:s', strtotime($startTime) + 3600);
+
+		$this->jm_masuk = $startTime;
+		$this->jm_pulang = $endTime;
+		$this->batas_absen_masuk = $entryLimit;
+		$this->attendance_type = 'KBM';
+	}
+
+	private function saveLatestCardStatus(){
+		$stmtDelete = $this->conn->prepare("DELETE FROM " . $this->db_tmp_datacard);
+		$stmtDelete->execute();
+
+		$stmtInsert = $this->conn->prepare(
+			"INSERT INTO " . $this->db_tmp_datacard . " (uid, jam, card_status)
+			 VALUES (:uid, :jam, :status)"
+		);
+		$stmtInsert->execute([
+			':uid' => $this->uid,
+			':jam' => $this->waktu,
+			':status' => $this->status,
+		]);
+	}
+
+	/**
+	 * Alur presensi guru reguler. Satu baris KBM digunakan per guru per hari.
+	 * Tap pulang baru dibuka satu jam sebelum jadwal pulang.
+	 */
+	private function processGuruAttendance(){
+		$this->getGuruSchedule();
+
+		$today = date('Y-m-d');
+		$now = date('H:i:s');
+		$nowTimestamp = strtotime($today . ' ' . $now);
+		$startTimestamp = strtotime($today . ' ' . $this->jm_masuk);
+		$entryLimitTimestamp = strtotime($today . ' ' . $this->batas_absen_masuk);
+		$endTimestamp = strtotime($today . ' ' . $this->jm_pulang);
+		$checkInOpenTimestamp = $startTimestamp - self::GURU_CHECKIN_OPEN_BEFORE_SECONDS;
+		$checkOutOpenTimestamp = $endTimestamp - self::GURU_CHECKOUT_OPEN_BEFORE_SECONDS;
+
+		try {
+			$this->conn->beginTransaction();
+
+			// Mengunci baris guru agar dua mesin tidak membuat presensi bersamaan.
+			$stmtLock = $this->conn->prepare(
+				"SELECT g_id FROM " . $this->db_data_guru . " WHERE g_uid = :uid FOR UPDATE"
+			);
+			$stmtLock->execute([':uid' => $this->uid]);
+
+			$stmtAttendance = $this->conn->prepare(
+				"SELECT * FROM " . $this->db_data_absen . "
+				 WHERE uid = :uid AND tanggal = :tanggal AND attendance_type = 'KBM'
+				 ORDER BY id DESC LIMIT 1"
+			);
+			$stmtAttendance->execute([':uid' => $this->uid, ':tanggal' => $today]);
+			$attendance = $stmtAttendance->fetch(PDO::FETCH_ASSOC) ?: null;
+
+			$this->waktu = $now;
+
+			if ($attendance === null) {
+				if ($nowTimestamp < $checkInOpenTimestamp) {
+					$this->status = 'NA';
+					$this->ket_absen = 'Presensi guru belum dibuka';
+				} elseif ($nowTimestamp > $endTimestamp) {
+					$this->status = 'LOCKED';
+					$this->ket_absen = 'Jadwal presensi guru sudah selesai';
 				} else {
-					$this->batas_absen_masuk = date('H:i:s', strtotime($guruRow['start_time']) + 3600);
+					$this->status = 'IN';
+					$this->jam_masuk = $now;
+					$this->jam_keluar = '00:00:00';
+					$this->ket_keluar = '';
+
+					if ($nowTimestamp <= $startTimestamp) {
+						$this->ket_masuk = '';
+					} elseif ($nowTimestamp <= $entryLimitTimestamp) {
+						$this->ket_masuk = 'Terlambat';
+					} else {
+						$this->ket_masuk = 'Sangat Terlambat';
+					}
+					$this->ket_absen = 'HADIR';
+
+					$stmtInsert = $this->conn->prepare(
+						"INSERT INTO " . $this->db_data_absen . "
+						 (tanggal, jam_masuk, jam_keluar, uid, status, ket_masuk,
+						  ket_keluar, keterangan, attendance_type)
+						 VALUES (:tanggal, :jam_masuk, :jam_keluar, :uid, 'IN',
+						  :ket_masuk, '', 'HADIR', 'KBM')"
+					);
+					$stmtInsert->execute([
+						':tanggal' => $today,
+						':jam_masuk' => $this->jam_masuk,
+						':jam_keluar' => $this->jam_keluar,
+						':uid' => $this->uid,
+						':ket_masuk' => $this->ket_masuk,
+					]);
 				}
-				return; // Jadwal ditemukan, selesai
-			}
-		} catch (Exception $e) {
-			// Tabel guru_schedules belum ada, lanjut ke default
-		}
+			} elseif (($attendance['status'] ?? '') === 'IN') {
+				$this->jam_masuk = $attendance['jam_masuk'];
 
-		// Fallback: Ambil jam default dari system_config jika ada
-		try {
-			$sqlConfig = "SELECT * FROM " . $this->db_system_config . " WHERE config_key IN ('guru_jam_masuk','guru_jam_pulang','guru_batas_masuk') LIMIT 3";
-			$stmtConfig = $this->conn->prepare($sqlConfig);
-			$stmtConfig->execute();
-			$configData = [];
-			while($row = $stmtConfig->fetch(PDO::FETCH_ASSOC)){
-				$configData[$row['config_key']] = $row['config_value'];
-			}
-			if(!empty($configData['guru_jam_masuk'])){
-				$this->jm_masuk = $configData['guru_jam_masuk'];
-				$this->jm_pulang = isset($configData['guru_jam_pulang']) ? $configData['guru_jam_pulang'] : '16:00:00';
-				$this->batas_absen_masuk = isset($configData['guru_batas_masuk']) ? $configData['guru_batas_masuk'] : date('H:i:s', strtotime($this->jm_masuk) + 3600);
-				$this->attendance_type = "KBM";
-				return;
-			}
-		} catch (Exception $e) {
-			// system_config tidak punya key guru, lanjut ke hardcode default
-		}
+				if ($nowTimestamp < $checkOutOpenTimestamp) {
+					$this->status = 'IN2';
+					$this->ket_absen = 'Sudah presensi masuk; presensi pulang belum dibuka';
+				} else {
+					$this->status = 'OUT';
+					$this->jam_keluar = $now;
 
-		// Hardcode default jika semua gagal
-		// Sesuaikan jam ini dengan kebutuhan sekolah Anda
-		$this->jm_masuk = "07:00:00";
-		$this->jm_pulang = "16:00:00";
-		$this->batas_absen_masuk = "08:00:00";
-		$this->attendance_type = "KBM";
+					if ($nowTimestamp < $endTimestamp) {
+						$this->ket_keluar = 'Pulang Awal';
+						$this->ket_absen = 'ABSEN';
+					} elseif ($nowTimestamp >= $endTimestamp + self::GURU_CHECKOUT_LATE_AFTER_SECONDS) {
+						$this->ket_keluar = 'Pulang Telat';
+						$this->ket_absen = 'COMPLETE';
+					} else {
+						$this->ket_keluar = '';
+						$this->ket_absen = 'COMPLETE';
+					}
+
+					$stmtUpdate = $this->conn->prepare(
+						"UPDATE " . $this->db_data_absen . "
+						 SET jam_keluar = :jam_keluar, status = 'OUT',
+						     ket_keluar = :ket_keluar, keterangan = :keterangan
+						 WHERE id = :id"
+					);
+					$stmtUpdate->execute([
+						':jam_keluar' => $this->jam_keluar,
+						':ket_keluar' => $this->ket_keluar,
+						':keterangan' => $this->ket_absen,
+						':id' => $attendance['id'],
+					]);
+				}
+			} else {
+				$this->status = 'LOCKED';
+				$this->jam_masuk = $attendance['jam_masuk'] ?? null;
+				$this->jam_keluar = $attendance['jam_keluar'] ?? null;
+				$this->ket_absen = 'Presensi guru hari ini sudah selesai';
+			}
+
+			$this->saveLatestCardStatus();
+			$this->conn->commit();
+			return true;
+		} catch (Throwable $exception) {
+			if ($this->conn->inTransaction()) {
+				$this->conn->rollBack();
+			}
+			error_log('Guru attendance failed: ' . $exception->getMessage());
+			return false;
+		}
 	}
 
 	// CREATE
@@ -214,14 +352,13 @@ class Absensi{
                 return true;
             }
 
-			// =================================================
-			// PERCABANGAN: GURU vs SISWA untuk penentuan jadwal
-			// =================================================
-			if($this->is_guru){
-				// GURU: Ambil jadwal dari guru_schedules / system_config / default
-				$this->getGuruSchedule();
-			} else {
-				// SISWA: Logika jadwal KBM dan Eskul (sama seperti sebelumnya)
+			// Guru memakai alur tersendiri agar aturan masuk dan pulang tidak
+			// bercampur dengan jadwal KBM/eskul siswa.
+			if ($this->is_guru) {
+				return $this->processGuruAttendance();
+			}
+
+			// SISWA: Logika jadwal KBM dan Eskul tetap seperti sebelumnya.
 
 				// --- Cek Jadwal KBM ---
 				$hari_indo = $this->getIndoDay(date('l'));
@@ -308,10 +445,9 @@ class Absensi{
 					return false;
 				}
 
-			} // end if is_guru / siswa
-            
+
 			// =================================================
-			// LOGIKA ABSEN (sama untuk guru dan siswa)
+			// LOGIKA ABSEN SISWA
 			// =================================================
 			$sqlQuery = "SELECT * FROM ". $this->db_data_absen ." WHERE uid = :uid ORDER BY id DESC LIMIT 1";
 			$stmt = $this->conn->prepare($sqlQuery);

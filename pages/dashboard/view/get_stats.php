@@ -42,7 +42,7 @@ foreach($kelas_list as $kelas) {
     $total = mysqli_fetch_assoc($q_total)['cnt'];
 
     // Hadir (IN, OUT, COMPLETE, HADIR) - Exclude SAKIT and IZIN explicitly
-    $q_hadir = mysqli_query($conn, "SELECT COUNT(*) as cnt FROM data_absen a 
+    $q_hadir = mysqli_query($conn, "SELECT COUNT(DISTINCT a.uid) as cnt FROM data_absen a
                                     JOIN data_siswa s ON a.uid = s.s_uid 
                                     WHERE s.s_kelas = '$kelas' 
                                     AND (a.keterangan='HADIR' OR a.keterangan='COMPLETE' OR a.status='IN' OR a.status='OUT') 
@@ -51,7 +51,7 @@ foreach($kelas_list as $kelas) {
     $hadir = mysqli_fetch_assoc($q_hadir)['cnt'];
 
     // Pulang (OUT)
-    $q_pulang = mysqli_query($conn, "SELECT COUNT(*) as cnt FROM data_absen a 
+    $q_pulang = mysqli_query($conn, "SELECT COUNT(DISTINCT a.uid) as cnt FROM data_absen a
                                      JOIN data_siswa s ON a.uid = s.s_uid 
                                      WHERE s.s_kelas = '$kelas' 
                                      AND a.status='OUT' 
@@ -59,7 +59,7 @@ foreach($kelas_list as $kelas) {
     $pulang = mysqli_fetch_assoc($q_pulang)['cnt'];
 
     // Izin (IZIN)
-    $q_izin = mysqli_query($conn, "SELECT COUNT(*) as cnt FROM data_absen a 
+    $q_izin = mysqli_query($conn, "SELECT COUNT(DISTINCT a.uid) as cnt FROM data_absen a
                                    JOIN data_siswa s ON a.uid = s.s_uid 
                                    WHERE s.s_kelas = '$kelas' 
                                    AND a.keterangan='IZIN' 
@@ -67,7 +67,7 @@ foreach($kelas_list as $kelas) {
     $izin = mysqli_fetch_assoc($q_izin)['cnt'];
 
     // Sakit (SAKIT)
-    $q_sakit = mysqli_query($conn, "SELECT COUNT(*) as cnt FROM data_absen a 
+    $q_sakit = mysqli_query($conn, "SELECT COUNT(DISTINCT a.uid) as cnt FROM data_absen a
                                     JOIN data_siswa s ON a.uid = s.s_uid 
                                     WHERE s.s_kelas = '$kelas' 
                                     AND a.keterangan='SAKIT' 
@@ -91,7 +91,7 @@ $q_total_guru = mysqli_query($conn, "SELECT COUNT(*) as cnt FROM data_guru");
 $total_guru = mysqli_fetch_assoc($q_total_guru)['cnt'];
 
 // Hadir
-$q_guru_hadir = mysqli_query($conn, "SELECT COUNT(*) as cnt FROM data_absen a 
+$q_guru_hadir = mysqli_query($conn, "SELECT COUNT(DISTINCT a.uid) as cnt FROM data_absen a
                                      JOIN data_guru g ON a.uid = g.g_uid 
                                      WHERE (a.keterangan='HADIR' OR a.keterangan='COMPLETE' OR a.status='IN' OR a.status='OUT') 
                                      AND (a.keterangan NOT IN ('SAKIT', 'IZIN'))
@@ -99,21 +99,21 @@ $q_guru_hadir = mysqli_query($conn, "SELECT COUNT(*) as cnt FROM data_absen a
 $guru_hadir = mysqli_fetch_assoc($q_guru_hadir)['cnt'];
 
 // Pulang
-$q_guru_pulang = mysqli_query($conn, "SELECT COUNT(*) as cnt FROM data_absen a 
+$q_guru_pulang = mysqli_query($conn, "SELECT COUNT(DISTINCT a.uid) as cnt FROM data_absen a
                                       JOIN data_guru g ON a.uid = g.g_uid 
                                       WHERE a.status='OUT' 
                                       AND a.tanggal=CURDATE()");
 $guru_pulang = mysqli_fetch_assoc($q_guru_pulang)['cnt'];
 
 // Izin
-$q_guru_izin = mysqli_query($conn, "SELECT COUNT(*) as cnt FROM data_absen a 
+$q_guru_izin = mysqli_query($conn, "SELECT COUNT(DISTINCT a.uid) as cnt FROM data_absen a
                                     JOIN data_guru g ON a.uid = g.g_uid 
                                     WHERE a.keterangan='IZIN' 
                                     AND a.tanggal=CURDATE()");
 $guru_izin = mysqli_fetch_assoc($q_guru_izin)['cnt'];
 
 // Sakit
-$q_guru_sakit = mysqli_query($conn, "SELECT COUNT(*) as cnt FROM data_absen a 
+$q_guru_sakit = mysqli_query($conn, "SELECT COUNT(DISTINCT a.uid) as cnt FROM data_absen a
                                      JOIN data_guru g ON a.uid = g.g_uid 
                                      WHERE a.keterangan='SAKIT' 
                                      AND a.tanggal=CURDATE()");
